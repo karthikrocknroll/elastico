@@ -1,0 +1,11 @@
+PlayerID,Name,Age,Gender,AgeGroup,Division,TeamID,JerseyNumber,IsAvailable,IsAvailableForSeconds
+P200,Liam Cooper,7,Male,U8,1,T2,4,TRUE,TRUE
+P205,Ethan Brooks,8,Male,U8,1,T3,11,TRUE,TRUE
+P240,Amelia Foster,8,,U10,1,T53,7,TRUE,TRUE
+P241,Noah Fischer,8,Male,U10,1,T53,8,TRUE,TRUE
+P301,Mason Reilly,6,Male,U8,1,T34,3,TRUE,TRUE
+P250,Isla Chapman,11,Female,U11,2,T62,14,TRUE,TRUE
+P400,Charlie Nguyen,7,Male,U9,1,T71,6,TRUE,TRUE
+P410,Sophie Bennett,12,Female,U12,1,T73,10,TRUE,TRUE
+P420,Ruby Anderson,9,Female,U9,1,T75,5,TRUE,TRUE
+P421,Chloe Martin,7,Female,U9,1,T71,12,TRUE,TRUE

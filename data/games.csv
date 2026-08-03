@@ -1,0 +1,18 @@
+GameID,GameAt,LocationName,IsOn,FinalStatus
+G100,2026-08-08 09:00,Campbell Park,TRUE,Active
+G101,2026-08-08 09:00,Kirkham Reserve,TRUE,Active
+G102,2026-08-08 11:00,Somerset Oval,TRUE,Active
+G103,2026-08-08 14:00,Kirkham Reserve,TRUE,Active
+G106,2026-08-09 10:00,Cherrybrook Oval,TRUE,Active
+G110,2026-08-08 09:00,Fred Caterson Reserve,TRUE,Active
+G111,2026-08-08 12:00,Boronia Park,TRUE,Active
+G112,2026-08-08 09:00,Kellyville Park,TRUE,Active
+G120,2026-08-08 13:00,Castle Hill Showground,TRUE,Active
+G121,2026-08-08 13:00,Gilbert Park,TRUE,Active
+G122,2026-08-08 16:00,Excelsior Park,TRUE,Active
+G130,2026-08-08 11:00,North Rocks Oval,TRUE,Active
+G131,2026-08-08 11:00,Bidjigal Reserve,TRUE,Active
+G140,2026-08-08 15:00,Muirfield Oval,TRUE,Active
+G141,2026-08-08 15:00,Toolgrove Reserve,TRUE,Active
+G150,2026-08-09 11:00,Cherrybrook Oval,TRUE,Active
+G151,2026-08-09 09:00,Fitzpatrick Park,TRUE,Active

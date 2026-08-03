@@ -1,0 +1,13 @@
+RequestID,Type,DestinationTeamID,GameID,Urgency,RequestedAt,RequestStatus,MatchedPlayerID,RelatedRequestIDs
+B-E01,Borrow,T1,G100,Medium,2026-08-04 09:00,Open,,
+B777,Borrow,T1,G100,Low,2026-08-03 14:00,Awaiting Approval,P205,
+B-E08,Borrow,T4,G101,High,2026-08-05 10:00,Open,,
+B-E27,Borrow,T7,G106,High,2026-08-05 08:00,Open,,
+B601,Borrow,T60,G120,High,2026-08-06 09:00,Open,,
+B602,Borrow,T61,G121,High,2026-08-06 09:15,Open,,
+B-E21,Borrow,T33,G110,High,2026-08-05 07:30,Open,,
+B-F01,Borrow,T70,G130,Medium,2026-08-04 12:00,Open,,
+B-F02,Borrow,T72,G140,Low,2026-08-04 16:00,Open,,
+B-F03,Borrow,T74,G150,Medium,2026-08-05 09:00,Open,,
+B-F04,Borrow,T3,G102,Low,2026-08-03 10:00,Open,,
+B-F06,Borrow,T75,G151,Medium,2026-08-05 09:30,Open,,

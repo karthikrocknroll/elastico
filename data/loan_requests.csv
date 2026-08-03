@@ -1,0 +1,11 @@
+RequestID,Type,PlayerID,SourceTeamID,Urgency,RequestedAt,RequestStatus,RelatedRequestIDs
+L802,Loan,P200,T2,Low,2026-08-04 07:00,Open,
+L806,Loan,P205,T3,Low,2026-08-03 13:00,Awaiting Approval,B777
+L820,Loan,P240,T53,Medium,2026-08-05 08:15,Open,
+L821,Loan,P241,T53,Medium,2026-08-05 08:20,Open,
+L830,Loan,P301,T34,Low,2026-08-05 07:00,Open,
+L840,Loan,P250,T62,Low,2026-08-06 08:00,Open,
+L850,Loan,P400,T71,Low,2026-08-04 11:00,Open,
+L860,Loan,P410,T73,Low,2026-08-04 15:00,Open,
+L870,Loan,P420,T75,Low,2026-08-05 08:30,Open,
+L880,Loan,P421,T71,Low,2026-08-05 09:00,Open,

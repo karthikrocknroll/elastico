@@ -1,0 +1,1852 @@
+<!DOCTYPE html>
+<html lang="en" data-skin="studio">
+<head>
+<meta charset="UTF-8">
+<title>Elastico (Player Availability &amp; Match Making Agent)</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════════
+   AGENTIC AI CAPSTONE — LOCKED DESIGN TOKENS  v0.3
+   The look ships in the box. Nobody chooses a font.
+
+   RULES (for the AI building the prototype):
+   - Inline this file into index.html. Use ONLY these tokens.
+   - No new colors. No new fonts. No emoji as icons.
+   - Skins switch by setting data-skin="ops" | "studio" | "term" on <html>.
+   - Never render body text below 13px (--fs-0).
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* type */
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --fs-0: 13px;  /* meta, log lines — absolute floor */
+  --fs-1: 14px;  /* body */
+  --fs-2: 16px;  /* emphasized body, buttons */
+  --fs-3: 20px;  /* panel titles */
+  --fs-4: 28px;  /* page title, stat numbers */
+  --lh: 1.5;
+
+  /* spacing & shape */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --border-w: 1px;
+
+  /* status colors — shared across all skins */
+  --ok: #1FA971;        /* pass / approved */
+  --warn: #D98E04;      /* needs work / pending */
+  --danger: #D64545;    /* fail / escalate / refused */
+  --info: #3B82F6;      /* running / info */
+}
+
+/* ── SKIN: OPERATIONS (dark) — default ─────────────────────────── */
+:root, [data-skin="ops"] {
+  --bg: #0F1420;         /* page */
+  --bg-raise: #171E2E;   /* panels, cards */
+  --bg-inset: #0B0F18;   /* wells, log */
+  --line: #263049;       /* borders */
+  --ink: #E8EDF7;        /* headings, primary text */
+  --ink-2: #9AA6BF;      /* secondary text */
+  --ink-3: #5E6A85;      /* meta */
+  --accent: #6C8CFF;     /* brand accent: buttons, active states */
+  --accent-ink: #FFFFFF; /* text on accent */
+  --chip: #1E2740;       /* tags, chips */
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 12px 32px -12px rgba(0,0,0,.55);
+  --font-body: var(--font-ui);
+}
+
+/* ── SKIN: STUDIO (light) ──────────────────────────────────────── */
+[data-skin="studio"] {
+  --bg: #F6F7FB;
+  --bg-raise: #FFFFFF;
+  --bg-inset: #EEF0F6;
+  --line: #E1E5EF;
+  --ink: #131A2A;
+  --ink-2: #4C5670;
+  --ink-3: #8B93A9;
+  --accent: #4056C9;
+  --accent-ink: #FFFFFF;
+  --chip: #EDF0FA;
+  --shadow: 0 1px 2px rgba(19,26,42,.06), 0 12px 28px -14px rgba(19,26,42,.18);
+  --font-body: var(--font-ui);
+}
+
+/* ── SKIN: TERMINAL (mono) ─────────────────────────────────────── */
+[data-skin="term"] {
+  --bg: #0C0F0C;
+  --bg-raise: #121712;
+  --bg-inset: #080B08;
+  --line: #223122;
+  --ink: #D7F5DC;
+  --ink-2: #8FBE97;
+  --ink-3: #567A5D;
+  --accent: #35D07F;
+  --accent-ink: #06130A;
+  --chip: #16301E;
+  --shadow: 0 0 0 1px rgba(53,208,127,.08), 0 12px 32px -14px rgba(0,0,0,.7);
+  --font-body: var(--font-mono);
+}
+
+/* ═══ BASE ═══ */
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: var(--fs-1); line-height: var(--lh);
+}
+
+/* ═══ LAYOUT ═══ */
+.topbar {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-5);
+  background: var(--bg-raise); border-bottom: var(--border-w) solid var(--line);
+}
+.topbar .product { font-size: var(--fs-2); font-weight: 700; letter-spacing: .01em; }
+.topbar .meta { color: var(--ink-3); font-size: var(--fs-0); margin-left: auto; display: flex; align-items: center; gap: var(--sp-2); }
+
+.console {
+  display: grid; grid-template-columns: 300px 1fr 320px;
+  gap: var(--sp-4); padding: var(--sp-4); align-items: start;
+  min-height: calc(100vh - 58px);
+}
+@media (max-width: 1100px) { .console { grid-template-columns: 1fr; } }
+
+.panel {
+  background: var(--bg-raise); border: var(--border-w) solid var(--line);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.panel-head {
+  padding: var(--sp-3) var(--sp-4); border-bottom: var(--border-w) solid var(--line);
+  font-size: var(--fs-0); font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink-2);
+}
+.panel-body { padding: var(--sp-4); }
+
+/* ═══ STAGE LABELS — the loop, named on screen ═══ */
+.stage {
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  font-size: var(--fs-0); font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--accent); margin: var(--sp-4) 0 var(--sp-2);
+}
+.stage::before {
+  content: attr(data-n); display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--accent); color: var(--accent-ink);
+  font-size: 11px; letter-spacing: 0;
+}
+
+/* ═══ CARDS (case list) ═══ */
+.case-card {
+  padding: var(--sp-3) var(--sp-4); border: var(--border-w) solid var(--line);
+  border-radius: var(--radius-sm); background: var(--bg-raise);
+  cursor: pointer; margin-bottom: var(--sp-2);
+}
+.case-card:hover { border-color: var(--accent); }
+.case-card.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; }
+.case-card .id { font-family: var(--font-mono); font-size: var(--fs-0); color: var(--ink-3); }
+.case-card .title { font-weight: 600; }
+
+/* ═══ CHIPS (one-click demo cases, citations) ═══ */
+.chip {
+  display: inline-flex; align-items: center; gap: var(--sp-1);
+  padding: 4px 12px; border-radius: 999px;
+  background: var(--chip); color: var(--ink-2);
+  border: var(--border-w) solid var(--line);
+  font-size: var(--fs-0); font-weight: 600; cursor: pointer;
+}
+.chip:hover { color: var(--ink); border-color: var(--accent); }
+.chip.cite { cursor: default; font-family: var(--font-mono); }
+
+/* ═══ OUTPUT FIELDS — labeled, judgeable in under a minute ═══ */
+.field { display: grid; grid-template-columns: 160px 1fr; gap: var(--sp-3); padding: var(--sp-2) 0; border-bottom: var(--border-w) solid var(--line); }
+.field:last-child { border-bottom: 0; }
+.field .k { font-size: var(--fs-0); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); padding-top: 2px; }
+.field .v { color: var(--ink); }
+.field .v.why { color: var(--ink-2); font-style: italic; }
+
+/* ═══ STATUS BADGES ═══ */
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px; border-radius: 999px;
+  font-size: var(--fs-0); font-weight: 700; letter-spacing: .04em;
+}
+.badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.badge.ok      { color: var(--ok);     background: color-mix(in srgb, var(--ok) 14%, transparent); }
+.badge.warn    { color: var(--warn);   background: color-mix(in srgb, var(--warn) 14%, transparent); }
+.badge.danger  { color: var(--danger); background: color-mix(in srgb, var(--danger) 14%, transparent); }
+.badge.info    { color: var(--info);   background: color-mix(in srgb, var(--info) 14%, transparent); }
+.badge.neutral { color: var(--ink-2);  background: var(--chip); }
+
+/* ═══ BUTTONS — the human gate ═══ */
+.btn {
+  display: inline-flex; align-items: center; gap: var(--sp-2);
+  padding: 8px 18px; border-radius: var(--radius-sm);
+  border: var(--border-w) solid var(--line);
+  background: var(--bg-raise); color: var(--ink);
+  font-family: var(--font-body); font-size: var(--fs-1); font-weight: 700;
+  cursor: pointer;
+}
+.btn:hover { border-color: var(--accent); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.approve { background: var(--ok); border-color: var(--ok); color: #fff; }
+.btn.danger  { background: transparent; border-color: var(--danger); color: var(--danger); }
+.btn.danger:hover { background: var(--danger); color: #fff; }
+
+/* ═══ THE BOUNDARY LINE — quiet, permanent ═══ */
+.boundary-note {
+  font-size: var(--fs-0); color: var(--ink-3);
+  border-left: 2px solid var(--accent); padding-left: var(--sp-3);
+  margin-top: var(--sp-3);
+}
+
+/* ═══ RUN LOG ═══ */
+.log {
+  background: var(--bg-inset); border: var(--border-w) solid var(--line);
+  border-radius: var(--radius-sm); padding: var(--sp-3);
+  font-family: var(--font-mono); font-size: var(--fs-0);
+  max-height: 420px; overflow: auto;
+}
+.log .row { display: flex; gap: var(--sp-3); padding: 3px 0; color: var(--ink-2); }
+.log .row .t { color: var(--ink-3); flex: none; }
+.log .row .action-approve  { color: var(--ok); }
+.log .row .action-edit     { color: var(--warn); }
+.log .row .action-escalate { color: var(--danger); }
+
+/* ═══ EVALS ═══ */
+.evals-table { width: 100%; border-collapse: collapse; font-size: var(--fs-1); }
+.evals-table th {
+  text-align: left; font-size: var(--fs-0); letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-3); padding: var(--sp-2) var(--sp-3); border-bottom: var(--border-w) solid var(--line);
+}
+.evals-table td { padding: var(--sp-3); border-bottom: var(--border-w) solid var(--line); vertical-align: top; }
+
+.scoreboard { display: flex; gap: var(--sp-4); margin-bottom: var(--sp-4); }
+.stat {
+  flex: 1; padding: var(--sp-4); text-align: center;
+  background: var(--bg-raise); border: var(--border-w) solid var(--line); border-radius: var(--radius);
+}
+.stat .n { font-size: var(--fs-4); font-weight: 800; line-height: 1.1; }
+.stat .l { font-size: var(--fs-0); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+.stat.ok .n { color: var(--ok); } .stat.warn .n { color: var(--warn); } .stat.danger .n { color: var(--danger); }
+
+/* ═══ STATES ═══ */
+.thinking { display: inline-flex; align-items: center; gap: var(--sp-2); color: var(--info); font-weight: 600; }
+.thinking::before { content: ""; width: 12px; height: 12px; border: 2px solid var(--info); border-top-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty {
+  padding: var(--sp-6); text-align: center; color: var(--ink-2);
+}
+.empty .headline { font-size: var(--fs-3); font-weight: 700; color: var(--ink); margin-bottom: var(--sp-2); }
+
+.error-note {
+  padding: var(--sp-3) var(--sp-4); border-radius: var(--radius-sm);
+  border: var(--border-w) solid var(--danger);
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+  color: var(--danger); font-size: var(--fs-1);
+}
+
+/* ═══ MAIN STAGE — battle cards (experimental) ═══ */
+.stage-arena {
+  display: flex; align-items: center; justify-content: center; gap: var(--sp-5);
+  padding: var(--sp-6) var(--sp-4); flex-wrap: wrap; perspective: 1200px;
+}
+.battle-card {
+  width: 320px; height: 340px; border-radius: var(--radius);
+  border: 2px solid var(--line); background: var(--bg-raise); box-shadow: var(--shadow);
+  padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-2);
+  position: relative;
+}
+.battle-card.match { height: auto; min-height: 340px; }
+.battle-card .card-label {
+  font-size: var(--fs-0); font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3);
+}
+.battle-card .card-label.highlight { color: var(--info); }
+.battle-card .card-title { font-size: var(--fs-3); font-weight: 800; color: var(--ink); margin: var(--sp-2) 0; }
+.battle-card .card-line { font-size: var(--fs-1); color: var(--ink-2); }
+.battle-card .card-line.category { font-size: var(--fs-2); }
+.battle-card .card-line.venue { margin-top: var(--sp-2); font-weight: 700; color: var(--ink); }
+.battle-card .urgency-tag { position: absolute; top: var(--sp-3); right: var(--sp-3); }
+.battle-card.borrow { border-color: var(--accent); }
+.battle-card.loan, .battle-card.mystery { border-color: var(--ink); }
+.battle-card.refused { border-color: var(--danger); }
+.battle-card.mystery {
+  border-style: solid; align-items: center; justify-content: center; text-align: center; color: var(--ink-3);
+}
+.battle-card .mystery-mark { font-size: 72px; font-weight: 800; color: var(--ink-3); line-height: 1; }
+.battle-card .no-match-mark { font-size: 48px; font-weight: 800; color: var(--danger); line-height: 1; }
+.vs-divider { font-size: var(--fs-3); font-weight: 800; color: var(--ink-3); transition: opacity .25s ease; }
+.battle-card .stamp {
+  position: absolute; bottom: var(--sp-3); right: var(--sp-3);
+  font-size: var(--fs-0); font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+  padding: 4px 10px; border-radius: var(--radius-sm);
+}
+.battle-card .stamp.approved { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); border: 1px solid var(--ok); }
+.battle-card .stamp.rejected { background: color-mix(in srgb, var(--danger) 16%, transparent); color: var(--danger); border: 1px solid var(--danger); }
+.battle-card .stamp.overridden { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); border: 1px solid var(--warn); }
+.stage-controls { width: 100%; text-align: center; margin-top: var(--sp-4); display: flex; align-items: center; justify-content: center; gap: var(--sp-3); flex-wrap: wrap; }
+.stage-controls p { width: 100%; }
+.sim-note {
+  width: 100%; text-align: center; margin-top: var(--sp-3);
+  color: var(--warn); font-size: var(--fs-0); font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+}
+
+/* the loan-request deck (a stack of face-down cards, sliding out to the right, "?" on top) */
+.card-stack { position: relative; width: 320px; height: 340px; }
+.card-stack .deck-back {
+  position: absolute; top: 0; left: 0; width: 320px; height: 340px; border-radius: var(--radius);
+  border: 2px solid var(--ink); background: var(--bg-raise); box-shadow: var(--shadow);
+}
+.card-stack .deck-back.deck-a { transform: translateX(28px); opacity: .4; z-index: 1; }
+.card-stack .deck-back.deck-b { transform: translateX(14px); opacity: .7; z-index: 2; }
+.card-stack .deck-top { position: absolute; top: 0; left: 0; z-index: 3; }
+
+/* spin-to-combine, on Approve of a real match */
+@keyframes cardSpinOut {
+  0% { transform: rotateY(0deg) scale(1); opacity: 1; }
+  100% { transform: rotateY(360deg) scale(.35); opacity: 0; }
+}
+.battle-card.spin-out, .card-stack.spin-out { animation: cardSpinOut .55s ease-in forwards; }
+@keyframes matchCardIn {
+  0% { transform: scale(.6) rotateY(180deg); opacity: 0; }
+  100% { transform: scale(1) rotateY(0deg); opacity: 1; }
+}
+.battle-card.match {
+  border-color: var(--ok); width: 500px; animation: matchCardIn .5s ease-out;
+}
+.match-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4); margin-top: var(--sp-3); text-align: left; }
+.match-grid .card-label { margin-top: 0; }
+
+/* flip-to-back cards (eligibility confirmation) */
+.flip-card { position: relative; width: 320px; height: 340px; perspective: 1400px; }
+.flip-card.match-size { width: 500px; height: 420px; }
+.flip-inner {
+  position: relative; width: 100%; height: 100%;
+  transition: transform .6s ease; transform-style: preserve-3d; cursor: pointer;
+}
+.flip-card.flipped .flip-inner { transform: rotateY(180deg); }
+.flip-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.flip-face.back { transform: rotateY(180deg); overflow-y: auto; }
+.flip-hint { font-size: var(--fs-0); color: var(--ink-3); text-align: center; margin-top: auto; display: flex; align-items: center; justify-content: center; gap: 5px; }
+.flip-hint .flip-icon { flex-shrink: 0; }
+.back-list { margin: var(--sp-2) 0 0; padding-left: 18px; font-size: var(--fs-1); color: var(--ink-2); }
+.back-list li { margin-bottom: 6px; }
+.back-list li.reject-reason { color: var(--danger); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="product">Elastico (Player Availability &amp; Match Making Agent)</div>
+  <div class="meta">
+    <span id="topbar-status"></span>
+    <span id="view-nav">
+      <button class="btn" id="nav-cases-btn">Backstage</button>
+      <button class="btn" id="nav-mainstage-btn">Main Stage</button>
+      <button class="btn" id="nav-evals-btn">Evals</button>
+    </span>
+    <label for="api-key-input">API key</label>
+    <input type="password" id="api-key-input" placeholder="sk-ant-...">
+    <button class="btn" id="save-key-btn">Save</button>
+    <span id="key-status"></span>
+  </div>
+</div>
+
+<div class="console" id="cases-view">
+
+  <div class="panel">
+    <div class="panel-head">Cases</div>
+    <div class="panel-body">
+      <div id="eval-chips"></div>
+      <button class="btn primary" id="run-all-btn">Run All</button>
+      <span id="run-all-progress"></span>
+      <p id="run-all-summary"></p>
+      <div id="borrow-list"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">Case</div>
+    <div class="panel-body" id="main-body">
+      <div class="empty" id="empty-state">
+        <div class="headline">Select a case</div>
+        <div>An agent that matches football Borrow requests to eligible Loan candidates, and asks an Age Coordinator to approve, reject, or override every match.</div>
+        <div>Click a case on the left to see its details and run the agent.</div>
+        <div id="empty-state-key-hint"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">Run Log</div>
+    <div class="panel-body">
+      <div class="log" id="run-log"></div>
+    </div>
+  </div>
+
+</div>
+
+<div id="mainstage-view" style="display:none; padding: var(--sp-4);">
+  <div style="display:flex; justify-content:flex-end; margin-bottom: var(--sp-3);">
+    <button class="btn" id="mainstage-next-btn">Next &rarr;</button>
+  </div>
+  <div class="empty" id="mainstage-idle">
+    <div class="headline">Main Stage is empty</div>
+    <div>Go to Backstage, select a case, and click "Show on Main Stage," or click "Next."</div>
+  </div>
+  <div id="mainstage-arena" style="display:none;"></div>
+</div>
+
+<div id="evals-view" style="display:none; padding: var(--sp-4);">
+  <div class="panel">
+    <div class="panel-head">Evals</div>
+    <div class="panel-body">
+      <div class="scoreboard" id="eval-scoreboard"></div>
+      <table class="evals-table">
+        <thead>
+          <tr>
+            <th>Case</th>
+            <th>Expected behavior</th>
+            <th>Actual</th>
+            <th>Verdict</th>
+            <th>Notes</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="evals-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top: var(--sp-4);">
+    <div class="panel-head">Improvement — E-21 (Boundary, actual-age play-up cap)</div>
+    <div class="panel-body">
+      <div class="field">
+        <div class="k">Before</div>
+        <div class="v">E-21 (the boundary case) initially returned STATUS: OK, recommending an ineligible candidate for the Hawks' U10 request. The real boundary candidate, Mason Reilly, actually fails the play-up cap (actual age 6 vs the destination's nominal age 10, a 4-year gap) but the model missed this - on one run it even justified excluding a different candidate by inventing a rule that does not exist ("shared Age Coordinator" conflict) instead of citing a real one.</div>
+      </div>
+      <div class="field">
+        <div class="k">Change</div>
+        <div class="v">Two fixes. Context wiring: each candidate's own team's game time (SourceTeamGame) was missing from the data sent to the agent, so it was guessing at scheduling conflicts instead of checking real data - added it. System prompt: reordered the required output so the agent writes its full analysis (WHY) before its conclusion (STATUS/REASON), and added an explicit instruction forbidding invented eligibility rules not present in the policy files.</div>
+      </div>
+      <div class="field">
+        <div class="k">After</div>
+        <div class="v">E-21 now consistently returns STATUS: REFUSED-ESCALATE, correctly citing "actual age 6 vs destination nominal age 10, difference 4, exceeds the 2-year cap" (eligibility_rules.md §1b) - holding across repeated re-runs.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top: var(--sp-4);">
+    <div class="panel-head">Known Limitations</div>
+    <div class="panel-body">
+      <ul>
+        <li>Handles only the Match Making + Approve/Reject step of the workflow. The weekly reminder, Pulse Check request-creation, auto-cancellation, the 8-hour Super Admin escalation, and week-end rollover are not built.</li>
+        <li>English only, one Borrow request evaluated at a time. Run All processes the queue sequentially, not in parallel.</li>
+        <li>Human decisions (Approve / Reject / Override) are logged, not enforced. They don't mutate the underlying Team/Player/Borrow/Loan data, so a rejected or approved candidate isn't actually removed from the pool - re-running the same case can still recommend the same candidate again.</li>
+        <li>Needs data in the exact embedded schema (Team, Player, Game, Borrow, Loan records as JS objects inside index.html). There's no file upload, CSV import, or live database - the dataset is fixed and synthetic, sized to exercise 5 known eval cases plus a few filler cases, not a real club's full season.</li>
+        <li>Single local API key stored in one browser's localStorage. No accounts, no multi-user access, no server - nothing is shared or synced between people running the file.</li>
+        <li>The Selection Order logic (eligibility_rules.md §8) is written to handle the At Risk urgency tier correctly in principle - it should never let a time-pressured request jump ahead of one whose team hasn't met Minimum - but this is unverified by any eval case, since At Risk's own trigger (the day-before-game-day timer) isn't built in this prototype. Noted as an accepted, out-of-scope gap.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top: var(--sp-4);">
+    <div class="panel-head">Gotchas (found and resolved after Section C was marked complete)</div>
+    <div class="panel-body">
+      <ul>
+        <li><strong>Resolved</strong> - Selection Order (eligibility_rules.md §8) let lower-urgency Borrow requests act as competitors. Found via E-08: three genuinely valid candidates were all wrongly excluded because the agent checked them against B-E01, B-F01, and B-F04 - all Medium or Low urgency, none actually eligible to compete under the "same tier or higher" rule. It also let one competing request "claim" more than one candidate at a time, when a request only ever needs one. Fixed by making the urgency-tier filter and the one-candidate-per-competitor rule explicit in the system prompt. Re-run confirmed: E-08 now correctly returns OK with Liam Cooper. This surfaced through continued use after the formal eval pass, not through the graded eval suite itself - a clean scoreboard doesn't guarantee no regressions. (See the two related Selection Order findings below, surfaced later via E-21/E-27 and E-29.)</li>
+        <li><strong>Resolved</strong> - A second, related issue surfaced through E-27 after the fix above, revealing two separate problems stacked on top of each other. First, a genuine business-rule error, not an agent bug: eligibility_rules.md §3 (and the Discovery/Design PRDs it was built from) wrongly stated that a Girls-only-team player could never be eligible for a Mixed-team Borrow request. The real rule is that a Female player is eligible for either team type - only male players are restricted, and only from Girls-only requests. Corrected across the PRDs, the Business Logic document, eligibility_rules.md §3, and the system prompt. Second, fixing that revealed Ruby Anderson (a Girls-only-team Female) is legitimately eligible for both E-27's own request and a separate High-tier request (B-E21) requested 30 minutes earlier - and on the first re-run, the agent incorrectly awarded her to BOTH in two separate runs, because it dismissed B-E21 as "not competing" purely because the destination Types differ, without re-testing her actual eligibility. Fixed by explicitly forbidding that shortcut in the system prompt. Re-run confirmed: E-27 now correctly returns REFUSED-ESCALATE (Ruby legitimately lost to the earlier B-E21), and E-21 now correctly returns OK - Ruby Anderson. This reclassified E-21 - it is no longer the "must refuse" boundary case, so E-29 was added to preserve that demonstration. E-21 and E-27 are now presented as one merged eval case (E-21, covering both B-E21 and B-E27) in the formal five, the same way E-28 already pairs B601 and B602 - the template calls for five cases (1 happy path, 3 edges, 1 boundary), and this keeps every individual demonstration one click away without exceeding that count.</li>
+        <li><strong>Resolved</strong> - While verifying the new E-29 boundary case (added to replace E-21 as the "must refuse" demonstration), the agent's first run incorrectly recommended Sophie Bennett despite her own team's game being at the exact same date/time as the destination's game, reasoning that a different LocationName meant "no conflict" - backwards from eligibility_rules.md §4, which is a date/time-only check; location is irrelevant to whether a player can be in two places at once. Fixed by explicitly stating in the system prompt that a matching GameAt is always a conflict regardless of LocationName. Re-run confirmed: E-29 now correctly returns REFUSED-ESCALATE, with every candidate ruled out for a different, independently-verified reason. Found only because a boundary case was deliberately re-verified rather than assumed to still work after an unrelated fix.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+const MODEL = "claude-sonnet-4-5";
+
+// ---------- DATA (converted from data/*.csv) ----------
+
+const TEAMS = [
+  {TeamID:"T1",Name:"Red",AgeGroup:"U8",Division:1,Type:"Mixed",GameID:"G100",AgeCoordinator:"Sarah Nguyen",TeamManager:"Chris Bailey"},
+  {TeamID:"T2",Name:"Blue",AgeGroup:"U8",Division:1,Type:"Mixed",GameID:"G103",AgeCoordinator:"Sarah Nguyen",TeamManager:"Priya Raman"},
+  {TeamID:"T3",Name:"Comets",AgeGroup:"U8",Division:1,Type:"Mixed",GameID:"G102",AgeCoordinator:"Sarah Nguyen",TeamManager:"Owen Fitzgerald"},
+  {TeamID:"T4",Name:"Bombers",AgeGroup:"U8",Division:1,Type:"Mixed",GameID:"G101",AgeCoordinator:"Sarah Nguyen",TeamManager:"Ryan Walsh"},
+  {TeamID:"T7",Name:"Falcons Girls",AgeGroup:"U10",Division:1,Type:"Girls only",GameID:"G106",AgeCoordinator:"Grace Kim",TeamManager:"Naomi Clarke"},
+  {TeamID:"T33",Name:"Hawks",AgeGroup:"U10",Division:1,Type:"Mixed",GameID:"G110",AgeCoordinator:"Grace Kim",TeamManager:"Jordan Petrov"},
+  {TeamID:"T34",Name:"Kookaburras",AgeGroup:"U8",Division:1,Type:"Mixed",GameID:"G111",AgeCoordinator:"Sarah Nguyen",TeamManager:"Alicia Moreno"},
+  {TeamID:"T53",Name:"Magpies",AgeGroup:"U10",Division:1,Type:"Mixed",GameID:"G112",AgeCoordinator:"Grace Kim",TeamManager:"Ben Harding"},
+  {TeamID:"T60",Name:"Eagles",AgeGroup:"U11",Division:2,Type:"Mixed",GameID:"G120",AgeCoordinator:"Marco Silva",TeamManager:"Fiona Doyle"},
+  {TeamID:"T61",Name:"Falcons Blue",AgeGroup:"U11",Division:2,Type:"Mixed",GameID:"G121",AgeCoordinator:"Marco Silva",TeamManager:"Tariq Hussain"},
+  {TeamID:"T62",Name:"Panthers",AgeGroup:"U11",Division:2,Type:"Mixed",GameID:"G122",AgeCoordinator:"Marco Silva",TeamManager:"Ruby Simmons"},
+  {TeamID:"T70",Name:"Sharks",AgeGroup:"U9",Division:1,Type:"Mixed",GameID:"G130",AgeCoordinator:"Daniel Osei",TeamManager:"Lucas Ferreira"},
+  {TeamID:"T71",Name:"Wattles",AgeGroup:"U9",Division:1,Type:"Mixed",GameID:"G131",AgeCoordinator:"Daniel Osei",TeamManager:"Ivy Chen"},
+  {TeamID:"T72",Name:"Tigers",AgeGroup:"U12",Division:1,Type:"Mixed",GameID:"G140",AgeCoordinator:"Leah Whitfield",TeamManager:"Noah Sinclair"},
+  {TeamID:"T73",Name:"Suns",AgeGroup:"U12",Division:1,Type:"Mixed",GameID:"G141",AgeCoordinator:"Leah Whitfield",TeamManager:"Ella Marsh"},
+  {TeamID:"T74",Name:"Comets Girls",AgeGroup:"U9",Division:1,Type:"Girls only",GameID:"G150",AgeCoordinator:"Daniel Osei",TeamManager:"Zoe Talbot"},
+  {TeamID:"T75",Name:"Bulldogs Girls",AgeGroup:"U9",Division:1,Type:"Girls only",GameID:"G151",AgeCoordinator:"Daniel Osei",TeamManager:"Harper Quinn"}
+];
+
+const GAMES = [
+  {GameID:"G100",GameAt:"2026-08-08 09:00",LocationName:"Campbell Park",IsOn:true,FinalStatus:"Active"},
+  {GameID:"G101",GameAt:"2026-08-08 09:00",LocationName:"Kirkham Reserve",IsOn:true,FinalStatus:"Active"},
+  {GameID:"G102",GameAt:"2026-08-08 11:00",LocationName:"Somerset Oval",IsOn:true,FinalStatus:"Active"},
+  {GameID:"G103",GameAt:"2026-08-08 14:00",LocationName:"Kirkham Reserve",IsOn:true,FinalStatus:"Active"},
+  {GameID:"G106",GameAt:"2026-08-09 10:00",LocationName:"Cherrybrook Oval",IsOn:true,FinalStatus:"Active"},
+  {GameID:"G110",GameAt:"2026-08-08 09:00",LocationName:"Fred Caterson Reserve",IsOn:true,FinalStatus:"Active"},
+  {GameID:"G111",GameAt:"2026-08-08 12:00",LocationName:"Boronia Park",IsOn:true,FinalStatus:"Active"},
+  {GameID:"G112",GameAt:"2026-08-08 09:00",LocationName:"Kellyville Park",IsOn:true,FinalStatus:"Active"},
+  {GameID:"G120",GameAt:"2026-08-08 13:00",LocationName:"Castle Hill Showground",IsOn:true,FinalStatus:"Active"},
+  {GameID:"G121",GameAt:"2026-08-08 13:00",LocationName:"Gilbert Park",IsOn:true,FinalStatus:"Active"},
+  {GameID:"G122",GameAt:"2026-08-08 16:00",LocationName:"Excelsior Park",IsOn:true,FinalStatus:"Active"},
+  {GameID:"G130",GameAt:"2026-08-08 11:00",LocationName:"North Rocks Oval",IsOn:true,FinalStatus:"Active"},
+  {GameID:"G131",GameAt:"2026-08-08 11:00",LocationName:"Bidjigal Reserve",IsOn:true,FinalStatus:"Active"},
+  {GameID:"G140",GameAt:"2026-08-08 15:00",LocationName:"Muirfield Oval",IsOn:true,FinalStatus:"Active"},
+  {GameID:"G141",GameAt:"2026-08-08 15:00",LocationName:"Toolgrove Reserve",IsOn:true,FinalStatus:"Active"},
+  {GameID:"G150",GameAt:"2026-08-09 11:00",LocationName:"Cherrybrook Oval",IsOn:true,FinalStatus:"Active"},
+  {GameID:"G151",GameAt:"2026-08-09 09:00",LocationName:"Fitzpatrick Park",IsOn:true,FinalStatus:"Active"}
+];
+
+const PLAYERS = [
+  {PlayerID:"P200",Name:"Liam Cooper",Age:7,Gender:"Male",AgeGroup:"U8",Division:1,TeamID:"T2",JerseyNumber:4,IsAvailable:true,IsAvailableForSeconds:true},
+  {PlayerID:"P205",Name:"Ethan Brooks",Age:8,Gender:"Male",AgeGroup:"U8",Division:1,TeamID:"T3",JerseyNumber:11,IsAvailable:true,IsAvailableForSeconds:true},
+  {PlayerID:"P240",Name:"Amelia Foster",Age:8,Gender:"",AgeGroup:"U10",Division:1,TeamID:"T53",JerseyNumber:7,IsAvailable:true,IsAvailableForSeconds:true},
+  {PlayerID:"P241",Name:"Noah Fischer",Age:8,Gender:"Male",AgeGroup:"U10",Division:1,TeamID:"T53",JerseyNumber:8,IsAvailable:true,IsAvailableForSeconds:true},
+  {PlayerID:"P301",Name:"Mason Reilly",Age:6,Gender:"Male",AgeGroup:"U8",Division:1,TeamID:"T34",JerseyNumber:3,IsAvailable:true,IsAvailableForSeconds:true},
+  {PlayerID:"P250",Name:"Isla Chapman",Age:11,Gender:"Female",AgeGroup:"U11",Division:2,TeamID:"T62",JerseyNumber:14,IsAvailable:true,IsAvailableForSeconds:true},
+  {PlayerID:"P400",Name:"Charlie Nguyen",Age:7,Gender:"Male",AgeGroup:"U9",Division:1,TeamID:"T71",JerseyNumber:6,IsAvailable:true,IsAvailableForSeconds:true},
+  {PlayerID:"P410",Name:"Sophie Bennett",Age:12,Gender:"Female",AgeGroup:"U12",Division:1,TeamID:"T73",JerseyNumber:10,IsAvailable:true,IsAvailableForSeconds:true},
+  {PlayerID:"P420",Name:"Ruby Anderson",Age:9,Gender:"Female",AgeGroup:"U9",Division:1,TeamID:"T75",JerseyNumber:5,IsAvailable:true,IsAvailableForSeconds:true},
+  {PlayerID:"P421",Name:"Chloe Martin",Age:7,Gender:"Female",AgeGroup:"U9",Division:1,TeamID:"T71",JerseyNumber:12,IsAvailable:true,IsAvailableForSeconds:true}
+];
+
+const LOAN_REQUESTS = [
+  {RequestID:"L802",Type:"Loan",PlayerID:"P200",SourceTeamID:"T2",Urgency:"Low",RequestedAt:"2026-08-04 07:00",RequestStatus:"Open",RelatedRequestIDs:""},
+  {RequestID:"L806",Type:"Loan",PlayerID:"P205",SourceTeamID:"T3",Urgency:"Low",RequestedAt:"2026-08-03 13:00",RequestStatus:"Awaiting Approval",RelatedRequestIDs:"B777"},
+  {RequestID:"L820",Type:"Loan",PlayerID:"P240",SourceTeamID:"T53",Urgency:"Medium",RequestedAt:"2026-08-05 08:15",RequestStatus:"Open",RelatedRequestIDs:""},
+  {RequestID:"L821",Type:"Loan",PlayerID:"P241",SourceTeamID:"T53",Urgency:"Medium",RequestedAt:"2026-08-05 08:20",RequestStatus:"Open",RelatedRequestIDs:""},
+  {RequestID:"L830",Type:"Loan",PlayerID:"P301",SourceTeamID:"T34",Urgency:"Low",RequestedAt:"2026-08-05 07:00",RequestStatus:"Open",RelatedRequestIDs:""},
+  {RequestID:"L840",Type:"Loan",PlayerID:"P250",SourceTeamID:"T62",Urgency:"Low",RequestedAt:"2026-08-06 08:00",RequestStatus:"Open",RelatedRequestIDs:""},
+  {RequestID:"L850",Type:"Loan",PlayerID:"P400",SourceTeamID:"T71",Urgency:"Low",RequestedAt:"2026-08-04 11:00",RequestStatus:"Open",RelatedRequestIDs:""},
+  {RequestID:"L860",Type:"Loan",PlayerID:"P410",SourceTeamID:"T73",Urgency:"Low",RequestedAt:"2026-08-04 15:00",RequestStatus:"Open",RelatedRequestIDs:""},
+  {RequestID:"L870",Type:"Loan",PlayerID:"P420",SourceTeamID:"T75",Urgency:"Low",RequestedAt:"2026-08-05 08:30",RequestStatus:"Open",RelatedRequestIDs:""},
+  {RequestID:"L880",Type:"Loan",PlayerID:"P421",SourceTeamID:"T71",Urgency:"Low",RequestedAt:"2026-08-05 09:00",RequestStatus:"Open",RelatedRequestIDs:""}
+];
+
+const BORROW_REQUESTS = [
+  {RequestID:"B-E01",Type:"Borrow",DestinationTeamID:"T1",GameID:"G100",Urgency:"Medium",RequestedAt:"2026-08-04 09:00",RequestStatus:"Open",MatchedPlayerID:"",RelatedRequestIDs:""},
+  {RequestID:"B777",Type:"Borrow",DestinationTeamID:"T1",GameID:"G100",Urgency:"Low",RequestedAt:"2026-08-03 14:00",RequestStatus:"Awaiting Approval",MatchedPlayerID:"P205",RelatedRequestIDs:""},
+  {RequestID:"B-E08",Type:"Borrow",DestinationTeamID:"T4",GameID:"G101",Urgency:"High",RequestedAt:"2026-08-05 10:00",RequestStatus:"Open",MatchedPlayerID:"",RelatedRequestIDs:""},
+  {RequestID:"B-E27",Type:"Borrow",DestinationTeamID:"T7",GameID:"G106",Urgency:"High",RequestedAt:"2026-08-05 08:00",RequestStatus:"Open",MatchedPlayerID:"",RelatedRequestIDs:""},
+  {RequestID:"B601",Type:"Borrow",DestinationTeamID:"T60",GameID:"G120",Urgency:"High",RequestedAt:"2026-08-06 09:00",RequestStatus:"Open",MatchedPlayerID:"",RelatedRequestIDs:""},
+  {RequestID:"B602",Type:"Borrow",DestinationTeamID:"T61",GameID:"G121",Urgency:"High",RequestedAt:"2026-08-06 09:15",RequestStatus:"Open",MatchedPlayerID:"",RelatedRequestIDs:""},
+  {RequestID:"B-E21",Type:"Borrow",DestinationTeamID:"T33",GameID:"G110",Urgency:"High",RequestedAt:"2026-08-05 07:30",RequestStatus:"Open",MatchedPlayerID:"",RelatedRequestIDs:""},
+  {RequestID:"B-F01",Type:"Borrow",DestinationTeamID:"T70",GameID:"G130",Urgency:"Medium",RequestedAt:"2026-08-04 12:00",RequestStatus:"Open",MatchedPlayerID:"",RelatedRequestIDs:""},
+  {RequestID:"B-F02",Type:"Borrow",DestinationTeamID:"T72",GameID:"G140",Urgency:"Low",RequestedAt:"2026-08-04 16:00",RequestStatus:"Open",MatchedPlayerID:"",RelatedRequestIDs:""},
+  {RequestID:"B-F03",Type:"Borrow",DestinationTeamID:"T74",GameID:"G150",Urgency:"Medium",RequestedAt:"2026-08-05 09:00",RequestStatus:"Open",MatchedPlayerID:"",RelatedRequestIDs:""},
+  {RequestID:"B-F04",Type:"Borrow",DestinationTeamID:"T3",GameID:"G102",Urgency:"Low",RequestedAt:"2026-08-03 10:00",RequestStatus:"Open",MatchedPlayerID:"",RelatedRequestIDs:""},
+  {RequestID:"B-F06",Type:"Borrow",DestinationTeamID:"T75",GameID:"G151",Urgency:"Medium",RequestedAt:"2026-08-05 09:30",RequestStatus:"Open",MatchedPlayerID:"",RelatedRequestIDs:""}
+];
+
+const EVAL_CASES = [
+  {case_id:"E-01",borrow_request_id:"B-E01",scenario:"T1 (Red, U8, Division 1, Mixed) has an open Borrow request for G100. Candidate P200 (T2 - Blue) is age- and division-eligible, available, no game conflict, jersey free.",expected_decision:"Recommend P200 as the matched candidate.",tests:"Baseline happy-path match",risk:"Low",result:"Not run"},
+  {case_id:"E-08",borrow_request_id:"B-E08",scenario:"T4 (Bombers, U8, Division 1, Mixed) has an open Borrow request for G101, its own game, at the same day/time as G100. Candidate P205 (T3) is age- and division-eligible and jersey-free, but is already MatchedPlayerID on Borrow request B777 (Awaiting Approval, DestinationTeamID T1, GameID G100, same date/time).",expected_decision:"Reject P205 - do not double-book across overlapping games. P200 (T2) is a genuinely eligible, earlier-requested fallback and should be recommended instead - the pass/fail point is that P205 is correctly excluded, not that the request goes unmatched.",tests:"Cross-request double-booking",risk:"High",result:"Not run"},
+  {case_id:"E-28",borrow_request_id:"B601,B602",scenario:"Two Borrow requests at the same Urgency tier (both High) - B601 for T60 (RequestedAt 09:00) and B602 for T61 (RequestedAt 09:15) - are both otherwise eligible for the same single available candidate, P250 (T62).",expected_decision:"Match P250 to B601 (T60) since it has the earlier RequestedAt; B602 remains Open.",tests:"FIFO race-condition tie-break",risk:"Medium",result:"Not run"},
+  {case_id:"E-21",borrow_request_id:"B-E21,B-E27",scenario:"Two Borrow requests are both eligible for the same single candidate, Ruby Anderson (P420, Girls-only team T75): B-E21 (Hawks, T33, U10, Mixed, High tier, RequestedAt 07:30) and B-E27 (Falcons Girls, T7, U10, Girls only, High tier, RequestedAt 08:00). Ruby is eligible for both under the Female cross-category allowance (eligibility_rules.md section 3) - a Girls-only-team Female is eligible for either a Girls-only or a Mixed destination. B-E21's other candidate, Mason Reilly (P301, T34), separately fails the actual-age play-up cap (age 6, 4 actual years below T33's nominal age 10). Every other candidate for B-E27 also fails a different rule (missing Gender data, team category, age category, or the play-up cap).",expected_decision:"B-E21 wins Ruby Anderson - both requests are High tier and she is eligible for both, and B-E21's RequestedAt (07:30) is earlier than B-E27's (08:00), so Selection Order (rule 8) awards her there; reject Mason Reilly on the play-up cap (rule 1b) and recommend Ruby for B-E21. B-E27 correctly loses her and, with every other candidate failing a rule, should return REFUSED-ESCALATE.",tests:"Female cross-category eligibility (Girls-only-to-Mixed) combined with same-tier Selection Order resolution - a winning side and a losing side",risk:"High",result:"Not run"},
+  {case_id:"E-29",borrow_request_id:"B-F02",scenario:"T72 (Tigers, U12, Division 1, Mixed) has an open Low-tier Borrow request for G140. The only same-AgeGroup candidate, P410 (Sophie Bennett, T73), has an own-game conflict - her team's game (G141) is at the exact same date/time as the destination's game (G140), at a different location. Every younger-AgeGroup candidate in the pool exceeds the 2-year actual-age play-up cap, one fails the Division rule (P250, Division 2 vs the required Division 1), and one is already double-booked (P205, Awaiting Approval elsewhere).",expected_decision:"Reject P410 on the own-game conflict (rule 4) - a matching date/time is always a conflict regardless of location. No other candidate clears every rule. STATUS should be REFUSED-ESCALATE.",tests:"Boundary - must refuse and escalate (independent disqualifying reasons stacked: play-up cap, division, own-game conflict, double-booking)",risk:"High",result:"Not run"}
+];
+
+// ---------- POLICIES (converted from policies/*.md) ----------
+
+const POLICIES = {
+  "eligibility_rules.md": `# Match Making Eligibility Rules
+
+Scoped to the Match Making + Approve/Reject loop only (Elastico - Player Availability & Match Making Agent).
+
+## 1. Age Eligibility
+
+### 1a. Same-Age-Or-Younger (category check)
+
+- A candidate's AgeGroup category must be the same as, or nominally younger than, the destination team's AgeGroup.
+- A candidate from an OLDER AgeGroup category than the destination fails this check outright. This is a category mismatch, not a play-up cap violation - cite it as 1a, never as the play-up cap.
+
+### 1b. Actual-Age Play-Up Cap
+
+- This check only applies when the candidate's AgeGroup category is YOUNGER than the destination's (i.e. they are playing up). It does not apply to a candidate from the destination's own AgeGroup category.
+- When it applies: the candidate's ACTUAL age (not AgeGroup category) may never be more than 2 actual years below the destination team's AgeGroup-derived nominal age. Example: a U10 team's nominal age is 10, so a play-up candidate must be actually aged 8 or older.
+- Passing the AgeGroup-category check (1a) is not sufficient on its own. The actual-age play-up cap (1b) is checked independently and can still fail a candidate whose category looks eligible.
+
+When rejecting a candidate on age, state which specific check failed (1a or 1b) and show the actual numbers you compared (e.g. "actual age 6 vs destination nominal age 10, difference 4, exceeds the 2-year cap"). Never cite "the play-up cap" for a candidate who is too OLD - that is always 1a.
+
+## 2. Division Rule
+
+- Applies from U9 and above only.
+- A candidate's Division must be the same as or higher than the destination team's Division (Division is numeric, 1 = highest). Never lower.
+
+## 3. Team Category Rule
+
+- For a MIXED destination request: the candidate is eligible regardless of Gender, provided their own team's Type is Mixed or Girls-only - a Girls-only team's roster is by definition all-Female, so a Girls-only-team candidate is always eligible for a Mixed destination too.
+- For a GIRLS-ONLY destination request: the candidate must be Female, from either a Girls-only team or a Mixed team. A Girls-only-team Female candidate is always eligible for a Girls-only destination - this is a normal same-category match, not the cross-category allowance, and it is never blocked.
+- The cross-category allowance for Female players runs BOTH directions - a Female candidate from a Girls-only team is eligible for a Mixed destination, and a Female candidate from a Mixed team is eligible for a Girls-only destination.
+- A male candidate is never eligible for a Girls-only request, regardless of which team he plays for. This is the only one-directional restriction in this rule - every other combination of Gender and source team Type is eligible for a Mixed destination.
+- Gender is required to evaluate this rule ONLY when the destination is Girls-only. If Gender is missing on a candidate being considered for a GIRLS-ONLY request specifically, this rule cannot be evaluated for that candidate - flag and exclude per "Missing Data" in escalation_rules.md. This never applies to a Mixed destination.
+
+## 4. Availability & Scheduling Conflicts
+
+- The candidate must have no conflict with their own team's game at the same date/time.
+- The candidate must not be double-booked: already MatchedPlayerID (Awaiting Approval or Fulfilled) on another Borrow request for an overlapping date/time.
+
+## 5. Same-Team Exclusion
+
+- A player's Loan request can never be matched against a Borrow request from their own team.
+
+## 6. Concurrent Borrow Cap
+
+- A destination team may never have more than 5 concurrent Borrow requests (Open, Awaiting Approval, or Fulfilled) for a single match. Do not recommend a match that would push a team over this cap.
+
+## 7. Jersey Number (non-blocking)
+
+- A jersey-number clash with the destination team's roster never blocks or reverses a match recommendation.
+- If a clash exists, surface it as a non-blocking note only - the Team Manager arranges a spare jersey before game day.
+
+## 8. Selection Order
+
+- When multiple candidates are eligible for one Borrow request: select the candidate whose Loan request has the earliest RequestedAt (FIFO).
+- When multiple Borrow requests are eligible for the same single candidate: a request whose destination team has not yet met Minimum (Urgency High) always outranks a request whose team already has (Urgency Medium or Low) - regardless of RequestedAt, since Minimum not being met matters more than who asked first. Among requests in the SAME Urgency tier, the earliest RequestedAt wins (FIFO). The non-winning request(s) remain Open for a future candidate.
+`,
+  "escalation_rules.md": `# Escalation Rules
+
+Scoped to the Match Making + Approve/Reject loop only. Timer-based escalations - the 8-hour Super Admin handoff and the At-Risk notify-once rule - belong to the Pulse Check trigger, which is outside this prototype's live loop, and are not evaluated here.
+
+## 1. Low Confidence
+
+If the agent is unsure a candidate genuinely clears every eligibility rule, it stops rather than guessing and surfaces the ambiguity instead of recommending.
+
+## 2. Missing Data
+
+If a candidate record is missing a field required to evaluate an eligibility rule (for example, a blank Gender for a Girls-only request, or a blank Age or AgeGroup), the agent does not evaluate eligibility on the incomplete record. It flags the record for correction and excludes that candidate from this run. It never assumes a value.
+
+## 3. Gap In Business Logic
+
+If a case turns on a rule or parameter the source documents don't fully specify, the agent flags it rather than silently deciding on incomplete rules.
+
+## 4. Out-Of-Policy Candidate
+
+If every available candidate fails at least one hard eligibility rule (age/play-up cap, division, team category, availability, same-team exclusion, concurrent-borrow cap), the agent rejects. It never recommends a candidate that fails a rule, and it never proceeds silently. If no valid candidate exists, the Borrow request stays Open and the agent escalates to the Age Coordinator feed instead of forcing a match.
+
+## Not Applicable To This Loop
+
+- Anger or legal language - no free-text, user-facing channel exists in this workflow.
+- High-stakes timers (8-hour stall, At-Risk unresolved) - handled by the Pulse Check trigger, not built in this prototype.
+`
+};
+
+// ---------- SYSTEM PROMPT (built from Design PRD) ----------
+
+const SYSTEM_PROMPT = `ROLE:
+The agent is hired to run match making for an Age Coordinator's open Borrow request — finding an eligible candidate from open Loan requests, within age eligibility, division rule, team category, and availability boundaries, without contacting a parent directly — escalating to the Age Coordinator when no eligible candidate exists or a rule cannot be evaluated.
+
+CONTEXT:
+Use only the embedded data and policy constants below. Never invent facts.
+- TEAMS: team roster (TeamID, Name, AgeGroup, Division, Type, GameID)
+- PLAYERS: player roster (PlayerID, Name, Age, Gender, AgeGroup, Division, TeamID, JerseyNumber, IsAvailable)
+- GAMES: game schedule (GameID, GameAt, LocationName)
+- BORROW_REQUESTS: open/awaiting Borrow requests (the cases)
+- LOAN_REQUESTS: the candidate pool. Includes both Open and Awaiting Approval requests - an Awaiting Approval Loan means that player is already tentatively committed to a DIFFERENT Borrow request (check otherBorrowRequests for which one). Do not treat an Awaiting Approval candidate as free; apply the double-booking / already-committed reasoning to exclude them unless you are re-evaluating that exact same request. Each candidate in the pool includes SourceTeamGame (that candidate's own team's game - GameAt, LocationName) - this is the data you check against the destination's Game.GameAt to evaluate the own-game-conflict rule. This data is always provided; never claim it is missing. This is a date/time-only check - LocationName never resolves it. If the candidate's own team's SourceTeamGame.GameAt exactly matches the destination's Game.GameAt (same date and time), that is always a conflict, whether the two games share a location or not. Do not treat a different LocationName as evidence against a conflict - a player cannot be in two places when the games are simultaneous.
+- AgeCoordinator and TeamManager (on TEAMS) are contact/display information only. They are NEVER an eligibility factor. Two teams sharing the same AgeCoordinator or TeamManager has no effect on eligibility and must never be cited as a reason to reject a candidate.
+- POLICIES["eligibility_rules.md"]: the eligibility rules to apply
+- POLICIES["escalation_rules.md"]: the escalation rules to apply
+
+Every candidate has their own RequestID, Player, SourceTeam, and SourceTeamGame. When you cite a field value (RequestStatus, RelatedRequestIDs, Age, GameAt, etc.) as a reason for accepting or rejecting a candidate, first confirm you are reading it from that exact candidate's own RequestID - not a different candidate's. Mixing up two candidates' field values is a critical error. If unsure, re-read that one candidate's full record before writing your conclusion.
+
+RULES — the agent must not:
+Apply only the rules written in eligibility_rules.md and escalation_rules.md. Never invent additional eligibility criteria (for example, organizational or administrative relationships like a shared Age Coordinator) that are not written in those files. If something outside those files seems relevant, that is a "Gap in business logic" escalation, not a new rule to apply.
+The agent never contacts a parent or player directly.
+The agent must never recommend or allow confirmation of a candidate that violates age eligibility (same age or younger, and never more than 2 actual years below the destination team's nominal AgeGroup age), the U9-and-above division rule, team category (a Mixed-team Borrow request can be filled by a Mixed-team player of either gender or a Female player from a Girls-only team; a Girls-only Borrow request can be filled by a Female player from a Girls-only or a Mixed team, but never by a male player), availability (including a conflict with the player's own game or a double-booking against another open request), the rule that a player can never be matched against their own team's Borrow request, or the 5-concurrent-borrow-per-match ceiling for the destination team. In any of those cases it must reject the candidate and either keep searching or escalate — never proceed silently.
+Jersey-number uniqueness is explicitly excluded from this boundary: a jersey clash never blocks or reverses a match recommendation — it's a post-match administrative note for the Team Managers involved.
+The agent can never finalize a match on its own — every recommendation goes to the destination team's Age Coordinator for Approve/Reject.
+
+OUTPUT:
+Do your analysis BEFORE writing your conclusion - write the WHY field first, work out the real answer there, then write STATUS and REASON to match what WHY already established. Do not decide STATUS first and justify it afterward; that produces conclusions that contradict the numbers.
+
+Reply using exactly this format: one field per line, each line starting with the exact label followed by a colon and a single-line value. Print the fields in exactly this order: WHY, STATUS, REASON, REQUEST, DESTINATION, CANDIDATE, ELIGIBILITY_CONFIRMATION, CITATIONS, CROSS_CATEGORY_NOTE, JERSEY_NOTE. Do not add any text before the first label or after the last line. Omit CROSS_CATEGORY_NOTE and JERSEY_NOTE entirely when they don't apply. Omit REASON only when STATUS is OK.
+
+WHY: Work out the real answer here first. Before settling on a candidate, check otherBorrowRequests for any other Open Borrow request that could also claim the same candidate (see Selection Order note below) - this is eligibility_rules.md section 8, and it is easy to miss because it means checking a DIFFERENT request's data, not just this one's. One to three sentences: the winning (or closest) candidate's decisive data points, written as actual numbers you compared (e.g. "actual age 6 vs destination nominal age 10, difference 4"), and the eligibility_rules.md section/subsection applied. Do not walk through every candidate in the pool one by one - that is internal work, not output.
+STATUS: OK, or REFUSED-ESCALATE if every available candidate fails a hard eligibility rule, a rule cannot be evaluated because required data is missing, or your best candidate is already claimed by an earlier-requested competing Borrow request under Selection Order. Must match what you just concluded in WHY - never contradict your own numbers.
+REASON: required whenever STATUS is REFUSED-ESCALATE - one or two sentences stating the winning constraint only, consistent with WHY. Cite the eligibility_rules.md section number.
+REQUEST: BorrowRequestID, Urgency
+DESTINATION: Team Name, AgeGroup, Division, Type, Game Location, Game Date/Time
+CANDIDATE: Player Name, Age, Gender, AgeGroup, Division, Source Team Name, Source Team Type (or "No viable candidate" when STATUS is REFUSED-ESCALATE)
+ELIGIBILITY_CONFIRMATION: always required, in every case, including REFUSED-ESCALATE. If STATUS is OK: one line naming which rules the winning candidate cleared. If STATUS is REFUSED-ESCALATE: one line stating that no candidate cleared every rule (e.g. "No candidate passed every eligibility rule - see Reason").
+CITATIONS: always required, but SHORT - a maximum of 6 items, comma-separated. This is not a list of everything you looked at; it is only the handful of facts that were DECISIVE to your STATUS. Cite only: (a) the destination's own TeamID and GameID, (b) the RequestID and PlayerID of the winning candidate (or the single closest-but-rejected candidate if REFUSED-ESCALATE), and (c) only the specific rule section(s) - as "eligibility_rules.md §<number>" or "escalation_rules.md §<number>" - that actually determined that outcome. Do NOT cite every candidate you screened out, and do NOT cite every rule section that exists in the policy file - only the ones load-bearing to THIS conclusion. If your list would be longer than 6 items, you are citing too much; cut it down to what actually mattered. Every ID and section you do cite must be real and must appear in the context you were given - inventing one is worse than citing nothing.
+CROSS_CATEGORY_NOTE: only if the Mixed-to-Girls-only allowance was the reason this candidate qualifies
+JERSEY_NOTE: only if the candidate's JerseyNumber clashes with the destination roster
+
+Selection Order note (eligibility_rules.md section 8): a candidate who otherwise passes every rule for THIS request may still not be yours - but a request is never at risk from a competitor at a LOWER Urgency tier than itself. If THIS request is High, no Medium or Low request can ever claim your candidate - skip them entirely, do not check them further. Otherwise, check every other Open Borrow request whose Urgency is High, or that shares this request's own tier, for whether your candidate would ALSO pass every rule (1a/1b, 2, 3, 4, 5) against it too - look at that other request's own DestinationTeam (AgeGroup, Division, Type) and Game. This is most likely to matter when two requests have near-identical DestinationTeam profiles (same AgeGroup, Division, Type) - that similarity is a strong signal they are competing for the same pool of candidates. That similarity note is a hint about when competition is common - it is NOT a filter for which requests to check. You must still individually re-test every High-tier or same-tier request even when its destination Type differs from yours, especially for a Female candidate: section 3's cross-category allowance means she can legitimately pass for both a Girls-only and a Mixed destination despite the Type difference. Never dismiss a request as "not competing" based on profile or Type alone - only an actual rule-by-rule check settles it. Among any other request where your candidate would also pass, decide priority in this order, not RequestedAt alone: (1) a High-tier request always outranks a Medium- or Low-tier request, no matter how much earlier the Medium/Low request was made - Minimum not being met always matters more than who asked first; (2) between two requests in the SAME tier, the one with the earlier RequestedAt wins. If a higher-priority request wins the candidate, the candidate belongs to that request - but that request only needs and will only take ONE candidate total. Once a specific competing request claims one of your candidates, that competitor is satisfied - it cannot also claim a second, different candidate of yours. Do not reuse one competitor's claim to disqualify multiple candidates. Move to your next-earliest eligible candidate for THIS request (checked against remaining, not-yet-satisfied competitors only), or REFUSED-ESCALATE if none remain. State in WHY which other request(s) you checked, including their Urgency tier, even briefly (e.g. "checked against B601 (High), also eligible - High outranks this Medium request regardless of RequestedAt - candidate belongs to B601").
+
+Passing the AgeGroup-category check (1a) is never enough on its own to set STATUS to OK - independently verify the actual-age play-up cap (1b, only when playing up), and every other hard rule in eligibility_rules.md, before recommending a candidate. When in doubt, REFUSED-ESCALATE is the safe choice, not a guess. Keep the whole response terse: a human reviewer must be able to judge it in under a minute. Do your elimination work silently; report only the conclusion and its decisive reason.
+
+ESCALATION:
+Stop and escalate, stating the reason, when:
+- Low confidence: unsure a candidate genuinely clears every eligibility rule.
+- Missing data: a candidate record is missing a field required to evaluate a rule (e.g. blank Gender for a Girls-only request). Do not assume a value — flag it and exclude that candidate.
+- Gap in business logic: the case turns on a rule the source documents don't fully specify.
+- Out-of-policy: every available candidate fails at least one hard eligibility rule. Leave the Borrow request unmatched and escalate to the Age Coordinator feed rather than forcing a match.
+Not applicable to this loop: anger or legal language (no free-text channel exists here), and high-stakes timers (8-hour stall, At-Risk unresolved — handled by the Pulse Check trigger, not this prototype).`;
+
+// ---------- SETTINGS: API key (localStorage only, never in this file) ----------
+
+const API_KEY_STORAGE_KEY = "anthropic_api_key";
+
+function renderKeyStatus() {
+  const status = document.getElementById("key-status");
+  const saved = localStorage.getItem(API_KEY_STORAGE_KEY);
+  status.textContent = saved ? "Key saved" : "No key set";
+
+  const hint = document.getElementById("empty-state-key-hint");
+  if (hint) {
+    hint.textContent = saved ? "" : "No API key saved yet - add one in the top bar before running a case.";
+  }
+}
+
+document.getElementById("save-key-btn").addEventListener("click", () => {
+  const input = document.getElementById("api-key-input");
+  const value = input.value.trim();
+  if (value) {
+    localStorage.setItem(API_KEY_STORAGE_KEY, value);
+    input.value = "";
+  }
+  renderKeyStatus();
+});
+
+renderKeyStatus();
+
+// ---------- WORLD ----------
+
+function findTeam(teamId) {
+  return TEAMS.find(t => t.TeamID === teamId);
+}
+function findGame(gameId) {
+  return GAMES.find(g => g.GameID === gameId);
+}
+function findPlayer(playerId) {
+  return PLAYERS.find(p => p.PlayerID === playerId);
+}
+
+document.getElementById("topbar-status").textContent =
+  `${TEAMS.length} teams · ${BORROW_REQUESTS.filter(b => b.RequestStatus === "Open").length} open cases`;
+
+// ---------- CONTEXT FOR A SINGLE CASE ----------
+
+function buildCaseContext(borrowRequestId) {
+  const request = BORROW_REQUESTS.find(b => b.RequestID === borrowRequestId);
+  const destinationTeam = findTeam(request.DestinationTeamID);
+  const game = findGame(request.GameID);
+
+  const candidatePool = LOAN_REQUESTS
+    .filter(l => l.RequestStatus === "Open" || l.RequestStatus === "Awaiting Approval")
+    .map(l => {
+      const sourceTeam = findTeam(l.SourceTeamID);
+      return {
+        ...l,
+        Player: findPlayer(l.PlayerID),
+        SourceTeam: sourceTeam,
+        SourceTeamGame: findGame(sourceTeam.GameID)
+      };
+    });
+
+  const otherBorrowRequests = BORROW_REQUESTS
+    .filter(b => b.RequestID !== borrowRequestId)
+    .map(b => ({ ...b, DestinationTeam: findTeam(b.DestinationTeamID), Game: findGame(b.GameID) }));
+
+  return {
+    request: { ...request, DestinationTeam: destinationTeam, Game: game },
+    candidatePool,
+    otherBorrowRequests
+  };
+}
+
+// ---------- PARSE + RENDER LABELED OUTPUT ----------
+
+const OUTPUT_LABELS = {
+  STATUS: "Status",
+  REASON: "Reason",
+  WHY: "Why",
+  REQUEST: "Request",
+  DESTINATION: "Destination",
+  CANDIDATE: "Candidate",
+  ELIGIBILITY_CONFIRMATION: "Eligibility confirmation",
+  CITATIONS: "Citations",
+  CROSS_CATEGORY_NOTE: "Cross-category note",
+  JERSEY_NOTE: "Jersey note"
+};
+const REQUIRED_OUTPUT_LABELS = ["STATUS", "REQUEST", "DESTINATION", "CANDIDATE", "ELIGIBILITY_CONFIRMATION", "CITATIONS", "WHY"];
+const VALID_STATUSES = ["OK", "REFUSED-ESCALATE"];
+
+function parseAgentOutput(text) {
+  const fields = {};
+  text.split("\n").forEach(line => {
+    const match = line.match(/^([A-Z_]+):\s*(.*)$/);
+    if (match && OUTPUT_LABELS[match[1]]) {
+      fields[match[1]] = match[2].trim();
+    }
+  });
+
+  const missing = REQUIRED_OUTPUT_LABELS.filter(label => !fields[label]);
+
+  if (fields.STATUS && !VALID_STATUSES.includes(fields.STATUS)) {
+    missing.push("STATUS (unrecognized value)");
+  }
+  if (fields.STATUS === "REFUSED-ESCALATE" && !fields.REASON) {
+    missing.push("REASON");
+  }
+
+  return { fields, ok: missing.length === 0, missing };
+}
+
+const AGENT_RESULTS = {};
+const LAST_OUTCOME = {};
+
+function renderAgentOutput(borrowRequestId, rawText) {
+  const container = document.getElementById(`result-${borrowRequestId}`);
+  container.innerHTML = "";
+  const { fields, ok, missing } = parseAgentOutput(rawText);
+
+  if (!ok) {
+    const notice = document.createElement("div");
+    notice.className = "error-note";
+    notice.textContent = `agent output did not match format (missing: ${missing.join(", ")})`;
+    container.appendChild(notice);
+    const raw = document.createElement("pre");
+    raw.textContent = rawText;
+    container.appendChild(raw);
+    return "format_error";
+  }
+
+  const decisionStage = document.createElement("div");
+  decisionStage.className = "stage";
+  decisionStage.dataset.n = "3";
+  decisionStage.textContent = "Decision";
+  container.appendChild(decisionStage);
+
+  Object.keys(OUTPUT_LABELS).forEach(key => {
+    if (!fields[key]) return;
+
+    if (key === "REQUEST") {
+      const outputStage = document.createElement("div");
+      outputStage.className = "stage";
+      outputStage.dataset.n = "4";
+      outputStage.textContent = "Output";
+      container.appendChild(outputStage);
+    }
+
+    const row = document.createElement("div");
+    row.className = "field";
+
+    const k = document.createElement("div");
+    k.className = "k";
+    k.textContent = OUTPUT_LABELS[key];
+
+    const v = document.createElement("div");
+    v.className = "v" + (key === "WHY" ? " why" : "");
+    v.dataset.field = key;
+
+    if (key === "STATUS") {
+      const badge = document.createElement("span");
+      badge.className = "badge " + (fields[key] === "OK" ? "ok" : "danger");
+      badge.textContent = fields[key];
+      v.appendChild(badge);
+    } else if (key === "CITATIONS") {
+      fields[key].split(",").map(c => c.trim()).filter(Boolean).forEach(citation => {
+        const tag = document.createElement("span");
+        tag.className = "chip cite";
+        tag.textContent = citation;
+        v.appendChild(tag);
+        v.appendChild(document.createTextNode(" "));
+      });
+    } else {
+      v.textContent = fields[key];
+    }
+
+    row.appendChild(k);
+    row.appendChild(v);
+    container.appendChild(row);
+  });
+
+  const decisionSummary = fields.STATUS + (fields.CANDIDATE ? " - " + fields.CANDIDATE : "");
+  const logEntry = logRun(borrowRequestId, decisionSummary);
+  AGENT_RESULTS[borrowRequestId] = { fields, rawText, logEntry };
+
+  const reviewStage = document.createElement("div");
+  reviewStage.className = "stage";
+  reviewStage.dataset.n = "5";
+  reviewStage.textContent = "Review";
+  container.appendChild(reviewStage);
+
+  container.appendChild(buildGate(borrowRequestId));
+  return fields.STATUS === "OK" ? "ok" : "refused";
+}
+
+const GATE_ACTIONS = {};
+
+function buildGate(borrowRequestId) {
+  const gate = document.createElement("div");
+  gate.id = `gate-${borrowRequestId}`;
+
+  const buttonRow = document.createElement("div");
+
+  const approveBtn = document.createElement("button");
+  approveBtn.className = "btn approve";
+  approveBtn.textContent = "Approve";
+  approveBtn.addEventListener("click", () => setGateAction(borrowRequestId, "Approved", "approved"));
+
+  const rejectBtn = document.createElement("button");
+  rejectBtn.className = "btn danger";
+  rejectBtn.textContent = "Reject";
+  rejectBtn.addEventListener("click", () => {
+    const reason = window.prompt("One-line reason for rejecting this candidate:");
+    if (reason === null || reason.trim() === "") return;
+    setGateAction(borrowRequestId, `Rejected: ${reason.trim()}`, "rejected");
+  });
+
+  const overrideBtn = document.createElement("button");
+  overrideBtn.className = "btn";
+  overrideBtn.textContent = "Override";
+  overrideBtn.addEventListener("click", () => startEdit(borrowRequestId));
+
+  const status = document.createElement("span");
+  status.id = `gate-status-${borrowRequestId}`;
+  status.textContent = " Pending human action";
+
+  buttonRow.appendChild(approveBtn);
+  buttonRow.appendChild(rejectBtn);
+  buttonRow.appendChild(overrideBtn);
+  buttonRow.appendChild(status);
+
+  const boundary = document.createElement("p");
+  boundary.className = "boundary-note";
+  boundary.textContent = "Nothing is sent without human approval.";
+
+  gate.appendChild(buttonRow);
+  gate.appendChild(boundary);
+  return gate;
+}
+
+function setGateAction(borrowRequestId, actionText, actionType) {
+  const result = AGENT_RESULTS[borrowRequestId];
+  if (result && result.logEntry) {
+    result.logEntry.humanAction = actionText;
+    renderRunLog();
+  }
+  GATE_ACTIONS[borrowRequestId] = actionType || "overridden";
+  renderCaseList();
+
+  const gate = document.getElementById(`gate-${borrowRequestId}`);
+  if (!gate) return;
+  gate.innerHTML = "";
+  const status = document.createElement("span");
+  status.textContent = actionText;
+  gate.appendChild(status);
+  const boundary = document.createElement("p");
+  boundary.className = "boundary-note";
+  boundary.textContent = "Nothing is sent without human approval.";
+  gate.appendChild(boundary);
+}
+
+function startEdit(borrowRequestId) {
+  const gate = document.getElementById(`gate-${borrowRequestId}`);
+  const result = AGENT_RESULTS[borrowRequestId];
+  if (!gate || !result) return;
+
+  gate.innerHTML = "";
+  const textarea = document.createElement("textarea");
+  textarea.id = `edit-textarea-${borrowRequestId}`;
+  textarea.value = result.fields.CANDIDATE || "";
+  textarea.rows = 2;
+  textarea.style.width = "100%";
+
+  const saveBtn = document.createElement("button");
+  saveBtn.className = "btn";
+  saveBtn.textContent = "Save";
+  saveBtn.addEventListener("click", () => {
+    const edited = textarea.value;
+    const candidateEl = document.querySelector(`#result-${borrowRequestId} .v[data-field="CANDIDATE"]`);
+    if (candidateEl) candidateEl.textContent = edited + " (overridden)";
+    result.fields.CANDIDATE = edited;
+    setGateAction(borrowRequestId, `Overridden candidate to: "${edited}"`, "overridden");
+  });
+
+  gate.appendChild(textarea);
+  gate.appendChild(saveBtn);
+}
+
+// ---------- RUN LOG ----------
+
+const RUN_LOG = [];
+let runLogCounter = 0;
+
+function logRun(caseId, decision) {
+  const entry = {
+    id: ++runLogCounter,
+    time: new Date().toLocaleTimeString(),
+    caseId,
+    decision,
+    humanAction: "Pending"
+  };
+  RUN_LOG.push(entry);
+  renderRunLog();
+  return entry;
+}
+
+function renderRunLog() {
+  const el = document.getElementById("run-log");
+  el.innerHTML = "";
+  RUN_LOG.forEach(entry => {
+    const row = document.createElement("div");
+    row.className = "row";
+
+    const t = document.createElement("span");
+    t.className = "t";
+    t.textContent = entry.time;
+
+    const mid = document.createElement("span");
+    mid.textContent = `${entry.caseId} -> ${entry.decision} |`;
+
+    const actionClass = entry.humanAction.startsWith("Approved") ? "action-approve"
+      : entry.humanAction.startsWith("Rejected") ? "action-escalate"
+      : entry.humanAction.startsWith("Overridden") ? "action-edit"
+      : "";
+    const action = document.createElement("span");
+    if (actionClass) action.className = actionClass;
+    action.textContent = entry.humanAction;
+
+    row.appendChild(t);
+    row.appendChild(mid);
+    row.appendChild(action);
+    el.appendChild(row);
+  });
+}
+
+// ---------- LIVE AGENT CALL ----------
+
+function showErrorNote(outputEl, message) {
+  outputEl.innerHTML = "";
+  const note = document.createElement("div");
+  note.className = "error-note";
+  note.textContent = message;
+  outputEl.appendChild(note);
+}
+
+function showThinking(outputEl) {
+  outputEl.innerHTML = "";
+  const thinking = document.createElement("span");
+  thinking.className = "thinking";
+  thinking.textContent = "Running the agent...";
+  outputEl.appendChild(thinking);
+}
+
+async function runCase(borrowRequestId) {
+  const outputEl = document.getElementById(`result-${borrowRequestId}`);
+  const apiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
+
+  if (!apiKey) {
+    showErrorNote(outputEl, "No API key set. Add your key in the top bar, then run this case again.");
+    LAST_OUTCOME[borrowRequestId] = "no_key";
+    renderCaseList();
+    return "no_key";
+  }
+
+  showThinking(outputEl);
+
+  const context = buildCaseContext(borrowRequestId);
+  const userMessage = `Evaluate this open Borrow request and recommend a candidate, or explain why none is eligible and escalate, per your system instructions.
+
+CASE CONTEXT (JSON):
+${JSON.stringify(context, null, 2)}
+
+ELIGIBILITY RULES:
+${POLICIES["eligibility_rules.md"]}
+
+ESCALATION RULES:
+${POLICIES["escalation_rules.md"]}`;
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 2048,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: "user", content: userMessage }]
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      if (response.status === 401) {
+        showErrorNote(outputEl, "API error: your key looks invalid. Check it in the top bar.");
+      } else if (response.status === 429) {
+        showErrorNote(outputEl, "API error: rate limited or out of credit on this key.");
+      } else {
+        showErrorNote(outputEl, `API error (${response.status}): ${errText}`);
+      }
+      LAST_OUTCOME[borrowRequestId] = "api_error";
+      renderCaseList();
+      return "api_error";
+    }
+
+    const data = await response.json();
+    const text = (data.content && data.content[0] && data.content[0].text) || JSON.stringify(data);
+    const outcome = renderAgentOutput(borrowRequestId, text);
+    LAST_OUTCOME[borrowRequestId] = outcome;
+    renderCaseList();
+    return outcome;
+  } catch (err) {
+    showErrorNote(outputEl, `Network error - check you're online. (${err.message})`);
+    LAST_OUTCOME[borrowRequestId] = "network_error";
+    renderCaseList();
+    return "network_error";
+  }
+}
+
+// ---------- RUN ALL ----------
+
+async function runAllCases() {
+  const openRequests = BORROW_REQUESTS.filter(b => b.RequestStatus === "Open");
+  const progressEl = document.getElementById("run-all-progress");
+  const summaryEl = document.getElementById("run-all-summary");
+  const runAllBtn = document.getElementById("run-all-btn");
+
+  runAllBtn.disabled = true;
+  summaryEl.textContent = "";
+  const counts = { ok: 0, refused: 0, error: 0 };
+
+  for (let i = 0; i < openRequests.length; i++) {
+    const b = openRequests[i];
+    progressEl.textContent = ` Running ${i + 1} of ${openRequests.length} (${b.RequestID})...`;
+    const outcome = await runCase(b.RequestID);
+    if (outcome === "ok") counts.ok++;
+    else if (outcome === "refused") counts.refused++;
+    else counts.error++;
+  }
+
+  progressEl.textContent = "";
+  summaryEl.textContent = `Run All complete: ${counts.ok} OK, ${counts.refused} REFUSED-ESCALATE, ${counts.error} errors (of ${openRequests.length} cases).`;
+  runAllBtn.disabled = false;
+}
+
+document.getElementById("run-all-btn").addEventListener("click", runAllCases);
+
+// ---------- RENDER: case cards (left) + case detail (main) ----------
+
+const borrowListEl = document.getElementById("borrow-list");
+const mainBodyEl = document.getElementById("main-body");
+const emptyStateEl = document.getElementById("empty-state");
+let SELECTED_CASE_ID = null;
+
+function statusBadgeFor(borrowRequestId) {
+  const gateAction = GATE_ACTIONS[borrowRequestId];
+  if (gateAction === "approved") return { cls: "ok", text: "Approved" };
+  if (gateAction === "rejected") return { cls: "danger", text: "Rejected" };
+  if (gateAction === "overridden") return { cls: "warn", text: "Overridden" };
+
+  const outcome = LAST_OUTCOME[borrowRequestId];
+  if (!outcome) return { cls: "neutral", text: "Not run" };
+  if (outcome === "ok") return { cls: "ok", text: "OK" };
+  if (outcome === "refused") return { cls: "danger", text: "REFUSED-ESCALATE" };
+  if (outcome === "format_error") return { cls: "warn", text: "Format error" };
+  return { cls: "danger", text: "Error" };
+}
+
+function renderCaseList() {
+  borrowListEl.innerHTML = "";
+  BORROW_REQUESTS.filter(b => b.RequestStatus === "Open").forEach(b => {
+    const team = findTeam(b.DestinationTeamID);
+
+    const card = document.createElement("div");
+    card.className = "case-card" + (b.RequestID === SELECTED_CASE_ID ? " active" : "");
+    card.addEventListener("click", () => selectCase(b.RequestID));
+
+    const idEl = document.createElement("div");
+    idEl.className = "id";
+    idEl.textContent = b.RequestID;
+
+    const titleEl = document.createElement("div");
+    titleEl.className = "title";
+    titleEl.textContent = `${team.Name} · ${b.Urgency}`;
+
+    const badgeInfo = statusBadgeFor(b.RequestID);
+    const badgeEl = document.createElement("span");
+    badgeEl.className = `badge ${badgeInfo.cls}`;
+    badgeEl.textContent = badgeInfo.text;
+
+    card.appendChild(idEl);
+    card.appendChild(titleEl);
+    card.appendChild(badgeEl);
+    borrowListEl.appendChild(card);
+  });
+}
+
+function selectCase(borrowRequestId) {
+  SELECTED_CASE_ID = borrowRequestId;
+  emptyStateEl.style.display = "none";
+  document.querySelectorAll(".case-detail").forEach(el => {
+    el.style.display = el.id === `detail-${borrowRequestId}` ? "block" : "none";
+  });
+  renderCaseList();
+}
+
+function buildCandidatePoolList() {
+  const wrap = document.createElement("div");
+  const label = document.createElement("p");
+  label.innerHTML = "<strong>Candidate pool (Loan requests)</strong>";
+  wrap.appendChild(label);
+
+  const ul = document.createElement("ul");
+  LOAN_REQUESTS
+    .filter(l => l.RequestStatus === "Open" || l.RequestStatus === "Awaiting Approval")
+    .forEach(l => {
+      const player = findPlayer(l.PlayerID);
+      const sourceTeam = findTeam(l.SourceTeamID);
+      const li = document.createElement("li");
+      li.textContent = `${player.Name} (${player.Age}, ${player.Gender || "Gender blank"}, ${player.AgeGroup} Div${player.Division}) - from ${sourceTeam.Name} (${sourceTeam.Type}) - ${l.RequestID}, ${l.RequestStatus}${l.RequestStatus === "Awaiting Approval" ? " on " + l.RelatedRequestIDs : ""}`;
+      ul.appendChild(li);
+    });
+  wrap.appendChild(ul);
+  return wrap;
+}
+
+BORROW_REQUESTS.filter(b => b.RequestStatus === "Open").forEach(b => {
+  const team = findTeam(b.DestinationTeamID);
+  const game = findGame(b.GameID);
+
+  const detail = document.createElement("div");
+  detail.className = "case-detail";
+  detail.id = `detail-${b.RequestID}`;
+  detail.style.display = "none";
+
+  const inputStage = document.createElement("div");
+  inputStage.className = "stage";
+  inputStage.dataset.n = "1";
+  inputStage.textContent = "Input";
+
+  const header = document.createElement("p");
+  header.textContent = `${b.RequestID} [${b.Urgency}] -> ${team.Name} (${team.AgeGroup} Div${team.Division} ${team.Type}) for ${game.LocationName} on ${game.GameAt}`;
+
+  const contextStage = document.createElement("div");
+  contextStage.className = "stage";
+  contextStage.dataset.n = "2";
+  contextStage.textContent = "Context";
+
+  const contextNote = document.createElement("p");
+  contextNote.textContent = "Reads: destination team & game, the full candidate pool (open + already-committed loan requests), every other open Borrow request (for double-booking and FIFO checks), eligibility_rules.md, escalation_rules.md.";
+
+  const runBtn = document.createElement("button");
+  runBtn.className = "btn primary";
+  runBtn.textContent = "Run";
+  runBtn.addEventListener("click", () => runCase(b.RequestID));
+
+  const mainStageBtn = document.createElement("button");
+  mainStageBtn.className = "btn";
+  mainStageBtn.textContent = "Show on Main Stage";
+  mainStageBtn.addEventListener("click", () => showOnMainStage(b.RequestID));
+
+  const resultDiv = document.createElement("div");
+  resultDiv.id = `result-${b.RequestID}`;
+
+  detail.appendChild(inputStage);
+  detail.appendChild(header);
+  detail.appendChild(contextStage);
+  detail.appendChild(contextNote);
+  detail.appendChild(buildCandidatePoolList());
+  detail.appendChild(runBtn);
+  detail.appendChild(mainStageBtn);
+  detail.appendChild(resultDiv);
+  mainBodyEl.appendChild(detail);
+});
+
+// ---------- ONE-CLICK DEMO CHIPS (your 5 eval cases) ----------
+
+const EVAL_CHIP_LABELS = {
+  "E-01": "Happy path",
+  "E-08": "Double-booking",
+  "E-28": "FIFO race (wins)",
+  "E-21": "Cross-category (wins)",
+  "E-29": "Boundary — must refuse"
+};
+
+const evalChipsEl = document.getElementById("eval-chips");
+EVAL_CASES.forEach(ec => {
+  const firstCaseId = ec.borrow_request_id.split(",")[0];
+  const chip = document.createElement("span");
+  chip.className = "chip";
+  chip.textContent = `${ec.case_id}: ${EVAL_CHIP_LABELS[ec.case_id] || ec.tests}`;
+  chip.addEventListener("click", () => selectCase(firstCaseId));
+  evalChipsEl.appendChild(chip);
+});
+
+const b602Chip = document.createElement("span");
+b602Chip.className = "chip";
+b602Chip.textContent = "E-28: FIFO race (defers)";
+b602Chip.addEventListener("click", () => selectCase("B602"));
+evalChipsEl.appendChild(b602Chip);
+
+const bE27Chip = document.createElement("span");
+bE27Chip.className = "chip";
+bE27Chip.textContent = "E-21: Missing data (defers)";
+bE27Chip.addEventListener("click", () => selectCase("B-E27"));
+evalChipsEl.appendChild(bE27Chip);
+
+renderCaseList();
+
+// ---------- VIEW NAV (Backstage / Main Stage / Evals) ----------
+
+function switchView(view) {
+  document.getElementById("cases-view").style.display = view === "cases" ? "grid" : "none";
+  document.getElementById("mainstage-view").style.display = view === "mainstage" ? "block" : "none";
+  document.getElementById("evals-view").style.display = view === "evals" ? "block" : "none";
+}
+
+document.getElementById("nav-cases-btn").addEventListener("click", () => switchView("cases"));
+document.getElementById("nav-mainstage-btn").addEventListener("click", () => switchView("mainstage"));
+document.getElementById("nav-evals-btn").addEventListener("click", () => switchView("evals"));
+
+// ---------- MAIN STAGE (battle cards, experimental) ----------
+
+let MAINSTAGE_CASE_ID = null;
+let MAINSTAGE_MOCK = null; // { fields: {...}, gateAction: null } - local-only, never touches AGENT_RESULTS/RUN_LOG
+
+function showOnMainStage(borrowRequestId) {
+  MAINSTAGE_CASE_ID = borrowRequestId;
+  MAINSTAGE_MOCK = null;
+  switchView("mainstage");
+  renderMainStage();
+}
+
+// Cycle order matches the demo chips left-to-right: E-01, E-27, E-08, E-28 (wins, B601), E-21, E-28 (defers, B602)
+const MAINSTAGE_CHIP_ORDER = ["B-E01", "B-E27", "B-E08", "B601", "B-E21", "B602"];
+
+function nextMainStageCase() {
+  const currentIndex = MAINSTAGE_CHIP_ORDER.indexOf(MAINSTAGE_CASE_ID);
+  const nextIndex = (currentIndex + 1) % MAINSTAGE_CHIP_ORDER.length;
+  showOnMainStage(MAINSTAGE_CHIP_ORDER[nextIndex]);
+}
+
+document.getElementById("mainstage-next-btn").addEventListener("click", nextMainStageCase);
+
+function dismissMainStage() {
+  MAINSTAGE_CASE_ID = null;
+  MAINSTAGE_MOCK = null;
+  renderMainStage();
+}
+
+function urgencyBadgeClass(urgency) {
+  if (urgency === "High") return "danger";
+  if (urgency === "Medium") return "warn";
+  return "neutral";
+}
+
+function candidateParts(fields) {
+  const parts = (fields.CANDIDATE || "").split(",").map(s => s.trim());
+  return {
+    name: parts[0], age: parts[1], gender: parts[2],
+    ageGroup: parts[3], division: parts[4], sourceTeam: parts[5], sourceType: parts[6]
+  };
+}
+
+function toBullets(text) {
+  if (!text) return [];
+  return text.split(/[,;]/).map(s => s.trim()).filter(Boolean);
+}
+
+function openRemainingCountForTeam(teamId) {
+  return BORROW_REQUESTS.filter(b =>
+    b.DestinationTeamID === teamId &&
+    b.RequestStatus === "Open" &&
+    GATE_ACTIONS[b.RequestID] !== "approved"
+  ).length;
+}
+
+function findLoanRequestIdForPlayerName(name) {
+  const player = PLAYERS.find(p => p.Name === name);
+  if (!player) return "L-SIM";
+  const loan = LOAN_REQUESTS.find(l => l.PlayerID === player.PlayerID);
+  return loan ? loan.RequestID : "L-???";
+}
+
+function renderMainStage() {
+  const idle = document.getElementById("mainstage-idle");
+  const arena = document.getElementById("mainstage-arena");
+  arena.innerHTML = "";
+
+  if (!MAINSTAGE_CASE_ID) {
+    idle.style.display = "block";
+    arena.style.display = "none";
+    return;
+  }
+  idle.style.display = "none";
+  arena.style.display = "flex";
+  arena.className = "stage-arena";
+
+  const b = BORROW_REQUESTS.find(x => x.RequestID === MAINSTAGE_CASE_ID);
+  const team = findTeam(b.DestinationTeamID);
+  const game = findGame(b.GameID);
+
+  const realResult = AGENT_RESULTS[MAINSTAGE_CASE_ID];
+  const isSimulated = !realResult && !!MAINSTAGE_MOCK;
+  const fields = realResult ? realResult.fields : (MAINSTAGE_MOCK ? MAINSTAGE_MOCK.fields : null);
+  const gateAction = realResult ? GATE_ACTIONS[MAINSTAGE_CASE_ID] : (MAINSTAGE_MOCK ? MAINSTAGE_MOCK.gateAction : null);
+  const isOk = !!fields && fields.STATUS === "OK";
+
+  // ---- Combined MATCH card: once a real match has been Approved ----
+  if (fields && isOk && gateAction === "approved") {
+    const c = candidateParts(fields);
+    const loanId = findLoanRequestIdForPlayerName(c.name);
+    const matchCard = document.createElement("div");
+    matchCard.className = "battle-card match";
+    matchCard.innerHTML = `
+      <div class="stamp approved">Approved</div>
+      <div class="urgency-tag"><span class="badge ${urgencyBadgeClass(b.Urgency)}">${b.Urgency}</span></div>
+      <div class="card-label">Match &middot; ${b.RequestID}</div>
+      <div class="card-title">${team.Name} (1/${openRemainingCountForTeam(b.DestinationTeamID)}) &larr; ${c.name || fields.CANDIDATE || "Unknown"}</div>
+      <div class="match-grid">
+        <div>
+          <div class="card-label">Destination</div>
+          <div class="card-line category">${team.AgeGroup} &middot; Division ${team.Division} &middot; ${team.Type}</div>
+          <div class="card-line venue">${game.LocationName}</div>
+          <div class="card-line venue">${game.GameAt}</div>
+        </div>
+        <div>
+          <div class="card-label">Candidate &middot; ${loanId}</div>
+          <div class="card-line category">${c.ageGroup || ""} ${c.division || ""}</div>
+          <div class="card-line">${c.age ? c.age + " yrs" : ""} ${c.gender ? "&middot; " + c.gender : ""}</div>
+          <div class="card-line">from ${c.sourceTeam || ""} ${c.sourceType ? "(" + c.sourceType + ")" : ""}</div>
+        </div>
+      </div>
+      ${isSimulated ? `<div class="sim-note">Simulated &middot; not sent to the agent</div>` : ""}
+      <div class="flip-hint"><svg class="flip-icon" viewBox="0 0 16 16" width="13" height="13" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 8a6 6 0 0 1 10.5-4M14 8a6 6 0 0 1-10.5 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M11 2.5v3h-3M5 13.5v-3h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>See back of card</div>
+    `;
+
+    const matchBack = document.createElement("div");
+    matchBack.className = "battle-card match flip-face back";
+    const matchBullets = toBullets(fields.ELIGIBILITY_CONFIRMATION).map(b => `<li>${b}</li>`).join("");
+    matchBack.innerHTML = `
+      <div class="card-label">Eligibility Confirmation</div>
+      <ul class="back-list">${matchBullets}</ul>
+      <div class="flip-hint">Click to flip back</div>
+    `;
+
+    const matchFlipWrap = document.createElement("div");
+    matchFlipWrap.className = "flip-card match-size";
+    const matchFlipInner = document.createElement("div");
+    matchFlipInner.className = "flip-inner";
+    matchCard.classList.add("flip-face", "front");
+    matchFlipInner.appendChild(matchCard);
+    matchFlipInner.appendChild(matchBack);
+    matchFlipWrap.appendChild(matchFlipInner);
+    matchFlipWrap.addEventListener("click", () => matchFlipWrap.classList.toggle("flipped"));
+    arena.appendChild(matchFlipWrap);
+
+    const controls = document.createElement("div");
+    controls.className = "stage-controls";
+    const dismissBtn = document.createElement("button");
+    dismissBtn.className = "btn";
+    dismissBtn.textContent = "Close";
+    dismissBtn.addEventListener("click", dismissMainStage);
+    controls.appendChild(dismissBtn);
+    arena.appendChild(controls);
+    return;
+  }
+
+  const borrowCard = document.createElement("div");
+  borrowCard.className = "battle-card borrow";
+  borrowCard.innerHTML = `
+    <div class="urgency-tag"><span class="badge ${urgencyBadgeClass(b.Urgency)}">${b.Urgency}</span></div>
+    <div class="card-label">Borrow Request &middot; ${b.RequestID}</div>
+    <div class="card-title">${team.Name} (1/${openRemainingCountForTeam(b.DestinationTeamID)})</div>
+    <div class="card-line category">${team.AgeGroup} &middot; Division ${team.Division} &middot; ${team.Type}</div>
+    <div class="card-line venue">${game.LocationName}</div>
+    <div class="card-line venue">${game.GameAt}</div>
+  `;
+  arena.appendChild(borrowCard);
+
+  const vs = document.createElement("div");
+  vs.className = "vs-divider";
+  vs.textContent = "VS";
+  arena.appendChild(vs);
+
+  // ---- No result yet: deck of cards, "?" on top ----
+  if (!fields) {
+    const stack = document.createElement("div");
+    stack.className = "card-stack";
+    stack.innerHTML = `
+      <div class="deck-back deck-a"></div>
+      <div class="deck-back deck-b"></div>
+      <div class="battle-card mystery deck-top">
+        <div class="mystery-mark">?</div>
+        <div class="card-label">Loan Request</div>
+        <div class="card-line">Not matched yet</div>
+      </div>
+    `;
+    arena.appendChild(stack);
+
+    const controls = document.createElement("div");
+    controls.className = "stage-controls";
+
+    const simMatchBtn = document.createElement("button");
+    simMatchBtn.className = "btn";
+    simMatchBtn.textContent = "Simulate Match";
+    simMatchBtn.addEventListener("click", () => {
+      MAINSTAGE_MOCK = {
+        fields: { STATUS: "OK", CANDIDATE: "Sample Player, 9, Female, U9, Division 1, Sample Team, Mixed" },
+        gateAction: null
+      };
+      renderMainStage();
+    });
+
+    const simRefuseBtn = document.createElement("button");
+    simRefuseBtn.className = "btn";
+    simRefuseBtn.textContent = "Simulate Refuse";
+    simRefuseBtn.addEventListener("click", () => {
+      MAINSTAGE_MOCK = {
+        fields: { STATUS: "REFUSED-ESCALATE", REASON: "Simulated refusal - sample reason, no eligible candidate." },
+        gateAction: null
+      };
+      renderMainStage();
+    });
+
+    const revealBtn = document.createElement("button");
+    revealBtn.className = "btn primary";
+    revealBtn.textContent = "Reveal Match";
+    revealBtn.addEventListener("click", async () => {
+      revealBtn.disabled = true;
+      revealBtn.textContent = "Revealing...";
+      await runCase(MAINSTAGE_CASE_ID);
+      renderMainStage();
+    });
+
+    controls.appendChild(simMatchBtn);
+    controls.appendChild(simRefuseBtn);
+    controls.appendChild(revealBtn);
+
+    const dismissBtn = document.createElement("button");
+    dismissBtn.className = "btn";
+    dismissBtn.textContent = "Close";
+    dismissBtn.addEventListener("click", dismissMainStage);
+    controls.appendChild(dismissBtn);
+
+    arena.appendChild(controls);
+    return;
+  }
+
+  // ---- Result known: Loan card (matched) or No-Match card ----
+  const loanCard = document.createElement("div");
+  loanCard.className = "battle-card " + (isOk ? "loan" : "refused");
+
+  let stampHtml = "";
+  if (gateAction === "rejected") stampHtml = `<div class="stamp rejected">Rejected</div>`;
+  else if (gateAction === "overridden") stampHtml = `<div class="stamp overridden">Overridden</div>`;
+
+  if (isOk) {
+    const c = candidateParts(fields);
+    const loanId = findLoanRequestIdForPlayerName(c.name);
+    loanCard.innerHTML = `
+      ${stampHtml}
+      <div class="card-label">Loan Request &middot; ${loanId}</div>
+      <div class="card-label highlight">Match Found</div>
+      <div class="card-title">${c.name || fields.CANDIDATE || "Unknown"}</div>
+      <div class="card-line category">${c.ageGroup || ""} ${c.division || ""}</div>
+      <div class="card-line">${c.age ? c.age + " yrs" : ""} ${c.gender ? "&middot; " + c.gender : ""}</div>
+      <div class="card-line">from ${c.sourceTeam || ""} ${c.sourceType ? "(" + c.sourceType + ")" : ""}</div>
+      <div class="flip-hint"><svg class="flip-icon" viewBox="0 0 16 16" width="13" height="13" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 8a6 6 0 0 1 10.5-4M14 8a6 6 0 0 1-10.5 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M11 2.5v3h-3M5 13.5v-3h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>See back of card</div>
+    `;
+
+    const backCard = document.createElement("div");
+    backCard.className = "battle-card loan flip-face back";
+    const bullets = toBullets(fields.ELIGIBILITY_CONFIRMATION).map(b => `<li>${b}</li>`).join("");
+    const rejectReasonText = isSimulated
+      ? (MAINSTAGE_MOCK.rejectReason || "")
+      : (realResult && realResult.logEntry ? realResult.logEntry.humanAction.replace(/^Rejected:\s*/, "") : "");
+    const rejectLi = gateAction === "rejected"
+      ? `<li class="reject-reason">Rejected: ${rejectReasonText}</li>`
+      : "";
+    backCard.innerHTML = `
+      <div class="card-label">Eligibility Confirmation</div>
+      <ul class="back-list">${bullets}${rejectLi}</ul>
+      <div class="flip-hint">Click to flip back</div>
+    `;
+
+    const flipWrap = document.createElement("div");
+    flipWrap.className = "flip-card";
+    const flipInner = document.createElement("div");
+    flipInner.className = "flip-inner";
+    loanCard.classList.add("flip-face", "front");
+    flipInner.appendChild(loanCard);
+    flipInner.appendChild(backCard);
+    flipWrap.appendChild(flipInner);
+    flipWrap.addEventListener("click", () => flipWrap.classList.toggle("flipped"));
+    arena.appendChild(flipWrap);
+  } else {
+    loanCard.innerHTML = `
+      ${stampHtml}
+      <div class="no-match-mark">&times;</div>
+      <div class="card-label">No Match Found</div>
+      <div class="card-line">${fields.REASON || "No eligible candidate."}</div>
+    `;
+    arena.appendChild(loanCard);
+  }
+
+  if (isSimulated) {
+    const simNote = document.createElement("div");
+    simNote.className = "sim-note";
+    simNote.textContent = "Simulated · not sent to the agent";
+    arena.appendChild(simNote);
+  }
+
+  const controls = document.createElement("div");
+  controls.className = "stage-controls";
+
+  if (!gateAction && isOk) {
+    const approveBtn = document.createElement("button");
+    approveBtn.className = "btn approve";
+    approveBtn.textContent = "Approve";
+    approveBtn.addEventListener("click", () => {
+      const finish = () => {
+        if (isSimulated) { MAINSTAGE_MOCK.gateAction = "approved"; }
+        else { setGateAction(MAINSTAGE_CASE_ID, "Approved", "approved"); }
+        renderMainStage();
+      };
+      approveBtn.disabled = true;
+      borrowCard.classList.add("spin-out");
+      loanCard.classList.add("spin-out");
+      vs.style.opacity = "0";
+      setTimeout(finish, 550);
+    });
+
+    const rejectBtn = document.createElement("button");
+    rejectBtn.className = "btn danger";
+    rejectBtn.textContent = "Reject";
+    rejectBtn.addEventListener("click", () => {
+      const reason = window.prompt("One-line reason for rejecting this candidate:");
+      if (reason === null || reason.trim() === "") return;
+      if (isSimulated) { MAINSTAGE_MOCK.gateAction = "rejected"; MAINSTAGE_MOCK.rejectReason = reason.trim(); }
+      else { setGateAction(MAINSTAGE_CASE_ID, `Rejected: ${reason.trim()}`, "rejected"); }
+      renderMainStage();
+    });
+
+    const overrideBtn = document.createElement("button");
+    overrideBtn.className = "btn";
+    overrideBtn.textContent = "Override";
+    overrideBtn.addEventListener("click", () => startMainStageOverride(isSimulated));
+
+    controls.appendChild(approveBtn);
+    controls.appendChild(rejectBtn);
+    controls.appendChild(overrideBtn);
+  } else if (gateAction) {
+    const p = document.createElement("p");
+    p.className = "card-line";
+    p.textContent = isSimulated ? "(simulated) " + gateAction : (realResult.logEntry ? realResult.logEntry.humanAction : "");
+    controls.appendChild(p);
+  }
+  // !isOk && !gateAction: no candidate to act on - only Close applies (added below)
+
+  const dismissBtn = document.createElement("button");
+  dismissBtn.className = "btn";
+  dismissBtn.textContent = "Close";
+  dismissBtn.addEventListener("click", dismissMainStage);
+  controls.appendChild(dismissBtn);
+
+  arena.appendChild(controls);
+}
+
+function startMainStageOverride(isSimulated) {
+  const arena = document.getElementById("mainstage-arena");
+  const controls = arena.querySelector(".stage-controls");
+  controls.innerHTML = "";
+
+  const fields = isSimulated ? MAINSTAGE_MOCK.fields : AGENT_RESULTS[MAINSTAGE_CASE_ID].fields;
+  const textarea = document.createElement("textarea");
+  textarea.rows = 2;
+  textarea.style.width = "100%";
+  textarea.value = fields.CANDIDATE || "";
+
+  const saveBtn = document.createElement("button");
+  saveBtn.className = "btn";
+  saveBtn.textContent = "Save";
+  saveBtn.addEventListener("click", () => {
+    const edited = textarea.value;
+    fields.CANDIDATE = edited;
+    if (isSimulated) {
+      MAINSTAGE_MOCK.gateAction = "overridden";
+    } else {
+      setGateAction(MAINSTAGE_CASE_ID, `Overridden candidate to: "${edited}"`, "overridden");
+    }
+    renderMainStage();
+  });
+
+  controls.appendChild(textarea);
+  controls.appendChild(saveBtn);
+}
+
+// ---------- EVALS TABLE ----------
+
+const EVAL_RESULTS_STORAGE_KEY = "eval_results";
+
+function loadEvalResults() {
+  try {
+    return JSON.parse(localStorage.getItem(EVAL_RESULTS_STORAGE_KEY)) || {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveEvalResult(caseId, patch) {
+  const all = loadEvalResults();
+  all[caseId] = { ...all[caseId], ...patch };
+  localStorage.setItem(EVAL_RESULTS_STORAGE_KEY, JSON.stringify(all));
+}
+
+function decisionSummaryFor(borrowRequestId) {
+  const result = AGENT_RESULTS[borrowRequestId];
+  if (result) {
+    return result.fields.STATUS + (result.fields.CANDIDATE ? " - " + result.fields.CANDIDATE : "");
+  }
+  const outcome = LAST_OUTCOME[borrowRequestId];
+  if (outcome === "no_key") return "FAILED: no API key set - add one in the top bar";
+  if (outcome === "api_error") return "FAILED: API error - check the Cases view for the exact message (bad key, rate limit, or no credit)";
+  if (outcome === "network_error") return "FAILED: network error - check you're online";
+  if (outcome === "format_error") return "FAILED: agent output did not match the required format";
+  return "no result";
+}
+
+async function runEvalCase(caseId) {
+  const ec = EVAL_CASES.find(e => e.case_id === caseId);
+  const actualEl = document.getElementById(`eval-actual-${caseId}`);
+  actualEl.textContent = "Running...";
+
+  const caseIds = ec.borrow_request_id.split(",");
+  for (const id of caseIds) {
+    await runCase(id);
+  }
+
+  const actualText = caseIds.map(id => `${id}: ${decisionSummaryFor(id) || "no result"}`).join(" | ");
+  actualEl.textContent = actualText;
+  saveEvalResult(caseId, { actual: actualText, lastRun: new Date().toLocaleString() });
+}
+
+function renderEvalsTable() {
+  const tbody = document.getElementById("evals-table-body");
+  tbody.innerHTML = "";
+  const saved = loadEvalResults();
+
+  EVAL_CASES.forEach(ec => {
+    const tr = document.createElement("tr");
+    const savedRow = saved[ec.case_id] || {};
+
+    const caseTd = document.createElement("td");
+    caseTd.textContent = `${ec.case_id} (${ec.tests})`;
+
+    const expectedTd = document.createElement("td");
+    expectedTd.textContent = ec.expected_decision;
+
+    const actualTd = document.createElement("td");
+    const actualSpan = document.createElement("span");
+    actualSpan.id = `eval-actual-${ec.case_id}`;
+    actualSpan.textContent = savedRow.actual || "";
+    actualTd.appendChild(actualSpan);
+
+    const verdictTd = document.createElement("td");
+    const verdictSelect = document.createElement("select");
+    verdictSelect.id = `eval-verdict-${ec.case_id}`;
+    ["", "Pass", "Needs work", "Fail"].forEach(v => {
+      const opt = document.createElement("option");
+      opt.value = v;
+      opt.textContent = v || "-";
+      verdictSelect.appendChild(opt);
+    });
+    verdictSelect.value = savedRow.verdict || "";
+    verdictSelect.addEventListener("change", () => {
+      saveEvalResult(ec.case_id, { verdict: verdictSelect.value });
+      renderScoreboard();
+    });
+    verdictTd.appendChild(verdictSelect);
+
+    const notesTd = document.createElement("td");
+    const notesInput = document.createElement("input");
+    notesInput.type = "text";
+    notesInput.id = `eval-notes-${ec.case_id}`;
+    notesInput.placeholder = "one-line note";
+    notesInput.value = savedRow.notes || "";
+    notesInput.addEventListener("change", () => {
+      saveEvalResult(ec.case_id, { notes: notesInput.value });
+    });
+    notesTd.appendChild(notesInput);
+
+    const runTd = document.createElement("td");
+    const runEvalBtn = document.createElement("button");
+    runEvalBtn.className = "btn";
+    runEvalBtn.textContent = "Run";
+    runEvalBtn.addEventListener("click", () => runEvalCase(ec.case_id).then(renderScoreboard));
+    runTd.appendChild(runEvalBtn);
+
+    tr.appendChild(caseTd);
+    tr.appendChild(expectedTd);
+    tr.appendChild(actualTd);
+    tr.appendChild(verdictTd);
+    tr.appendChild(notesTd);
+    tr.appendChild(runTd);
+    tbody.appendChild(tr);
+  });
+}
+
+function renderScoreboard() {
+  const el = document.getElementById("eval-scoreboard");
+  el.innerHTML = "";
+  const saved = loadEvalResults();
+  const rows = EVAL_CASES.map(ec => saved[ec.case_id] || {});
+
+  const counts = { Pass: 0, "Needs work": 0, Fail: 0 };
+  let totalRun = 0;
+  let lastRun = null;
+
+  rows.forEach(r => {
+    if (r.verdict && counts.hasOwnProperty(r.verdict)) counts[r.verdict]++;
+    if (r.actual) totalRun++;
+    if (r.lastRun && (!lastRun || new Date(r.lastRun) > new Date(lastRun))) lastRun = r.lastRun;
+  });
+
+  const stats = [
+    { n: counts.Pass, l: "Pass", cls: "ok" },
+    { n: counts["Needs work"], l: "Needs work", cls: "warn" },
+    { n: counts.Fail, l: "Fail", cls: "danger" },
+    { n: `${totalRun} / ${EVAL_CASES.length}`, l: "Cases run", cls: "" },
+    { n: lastRun || "-", l: "Last run", cls: "" }
+  ];
+
+  stats.forEach(s => {
+    const stat = document.createElement("div");
+    stat.className = "stat" + (s.cls ? " " + s.cls : "");
+    const n = document.createElement("div");
+    n.className = "n";
+    n.textContent = s.n;
+    const l = document.createElement("div");
+    l.className = "l";
+    l.textContent = s.l;
+    stat.appendChild(n);
+    stat.appendChild(l);
+    el.appendChild(stat);
+  });
+}
+
+renderEvalsTable();
+renderScoreboard();
+</script>
+
+</body>
+</html>

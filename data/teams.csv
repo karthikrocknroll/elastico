@@ -1,0 +1,18 @@
+TeamID,Name,AgeGroup,Division,Type,GameID,AgeCoordinator,TeamManager
+T1,Red,U8,1,Mixed,G100,Sarah Nguyen,Chris Bailey
+T2,Blue,U8,1,Mixed,G103,Sarah Nguyen,Priya Raman
+T3,Comets,U8,1,Mixed,G102,Sarah Nguyen,Owen Fitzgerald
+T4,Bombers,U8,1,Mixed,G101,Sarah Nguyen,Ryan Walsh
+T7,Falcons Girls,U10,1,Girls only,G106,Grace Kim,Naomi Clarke
+T33,Hawks,U10,1,Mixed,G110,Grace Kim,Jordan Petrov
+T34,Kookaburras,U8,1,Mixed,G111,Sarah Nguyen,Alicia Moreno
+T53,Magpies,U10,1,Mixed,G112,Grace Kim,Ben Harding
+T60,Eagles,U11,2,Mixed,G120,Marco Silva,Fiona Doyle
+T61,Falcons Blue,U11,2,Mixed,G121,Marco Silva,Tariq Hussain
+T62,Panthers,U11,2,Mixed,G122,Marco Silva,Ruby Simmons
+T70,Sharks,U9,1,Mixed,G130,Daniel Osei,Lucas Ferreira
+T71,Wattles,U9,1,Mixed,G131,Daniel Osei,Ivy Chen
+T72,Tigers,U12,1,Mixed,G140,Leah Whitfield,Noah Sinclair
+T73,Suns,U12,1,Mixed,G141,Leah Whitfield,Ella Marsh
+T74,Comets Girls,U9,1,Girls only,G150,Daniel Osei,Zoe Talbot
+T75,Bulldogs Girls,U9,1,Girls only,G151,Daniel Osei,Harper Quinn
