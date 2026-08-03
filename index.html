@@ -344,6 +344,11 @@ body {
       <button class="btn" id="nav-cases-btn">Backstage</button>
       <button class="btn" id="nav-mainstage-btn">Main Stage</button>
       <button class="btn" id="nav-evals-btn">Evals</button>
+      <button class="btn" id="nav-admin-btn">Data Admin</button>
+    </span>
+    <span id="mode-toggle" style="margin-left: var(--sp-3);">
+      <span id="mode-label" style="font-weight:700;">Mode: Test</span>
+      <button class="btn" id="mode-switch-btn">Switch to Live Pilot</button>
     </span>
     <label for="api-key-input">API key</label>
     <input type="password" id="api-key-input" placeholder="sk-ant-...">
@@ -357,10 +362,12 @@ body {
   <div class="panel">
     <div class="panel-head">Cases</div>
     <div class="panel-body">
-      <div id="eval-chips"></div>
-      <button class="btn primary" id="run-all-btn">Run All</button>
-      <span id="run-all-progress"></span>
-      <p id="run-all-summary"></p>
+      <div id="test-mode-controls">
+        <div id="eval-chips"></div>
+        <button class="btn primary" id="run-all-btn">Run All</button>
+        <span id="run-all-progress"></span>
+        <p id="run-all-summary"></p>
+      </div>
       <div id="borrow-list"></div>
     </div>
   </div>
@@ -462,8 +469,52 @@ body {
   </div>
 </div>
 
+<div id="admin-view" style="display:none; padding: var(--sp-4);">
+
+  <div class="panel">
+    <div class="panel-head">Data Admin - Roster (one-time, or whenever the roster changes)</div>
+    <div class="panel-body">
+      <p>Upload a CSV with one row per player: <code>PlayerID,PlayerName,Age,Gender,JerseyNumber,TeamID,TeamName,AgeGroup,Division,Type,AgeCoordinator,TeamManager</code>. Team records are derived from the distinct TeamIDs in this file.</p>
+      <input type="file" id="roster-csv-input" accept=".csv">
+      <button class="btn primary" id="roster-load-btn">Load Roster</button>
+      <div id="roster-status" style="margin-top: var(--sp-3);"></div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top: var(--sp-4);">
+    <div class="panel-head">Data Admin - Weekly Availability (recurring, every week)</div>
+    <div class="panel-body">
+      <p>Upload a CSV with one row per player: <code>PlayerID,TeamID,GameID,GameAt,LocationName,IsAvailable,IsAvailableForSeconds</code>. Requires the roster above to already be loaded - every PlayerID and TeamID is cross-checked against it.</p>
+      <input type="file" id="weekly-csv-input" accept=".csv">
+      <button class="btn primary" id="weekly-load-btn">Load &amp; Generate</button>
+      <div id="weekly-status" style="margin-top: var(--sp-3);"></div>
+      <div id="weekly-preview"></div>
+      <button class="btn" id="weekly-download-btn" style="display:none;">Download current-requests.json</button>
+    </div>
+  </div>
+
+</div>
+
 <script>
 const MODEL = "claude-sonnet-4-5";
+
+// ---------- AGE GROUP STANDARDS (from Discovery/Age Groups and Team Size.xlsx) ----------
+
+const AGE_GROUP_STANDARDS = {
+  "U6": {Minimum:4, Threshold:6, Size:7},
+  "U7": {Minimum:4, Threshold:6, Size:7},
+  "U8": {Minimum:7, Threshold:9, Size:10},
+  "U9": {Minimum:7, Threshold:9, Size:10},
+  "U10": {Minimum:9, Threshold:12, Size:13},
+  "U11": {Minimum:9, Threshold:12, Size:13},
+  "U12": {Minimum:9, Threshold:12, Size:13},
+  "U13": {Minimum:11, Threshold:14, Size:16},
+  "U14": {Minimum:11, Threshold:14, Size:16},
+  "U15": {Minimum:11, Threshold:14, Size:16},
+  "U16": {Minimum:11, Threshold:14, Size:16},
+  "U17": {Minimum:11, Threshold:14, Size:16},
+  "U18": {Minimum:11, Threshold:14, Size:16}
+};
 
 // ---------- DATA (converted from data/*.csv) ----------
 
@@ -1222,54 +1273,60 @@ function buildCandidatePoolList() {
   return wrap;
 }
 
-BORROW_REQUESTS.filter(b => b.RequestStatus === "Open").forEach(b => {
-  const team = findTeam(b.DestinationTeamID);
-  const game = findGame(b.GameID);
+function buildCaseDetails() {
+  mainBodyEl.querySelectorAll(".case-detail").forEach(el => el.remove());
 
-  const detail = document.createElement("div");
-  detail.className = "case-detail";
-  detail.id = `detail-${b.RequestID}`;
-  detail.style.display = "none";
+  BORROW_REQUESTS.filter(b => b.RequestStatus === "Open").forEach(b => {
+    const team = findTeam(b.DestinationTeamID);
+    const game = findGame(b.GameID);
 
-  const inputStage = document.createElement("div");
-  inputStage.className = "stage";
-  inputStage.dataset.n = "1";
-  inputStage.textContent = "Input";
+    const detail = document.createElement("div");
+    detail.className = "case-detail";
+    detail.id = `detail-${b.RequestID}`;
+    detail.style.display = "none";
 
-  const header = document.createElement("p");
-  header.textContent = `${b.RequestID} [${b.Urgency}] -> ${team.Name} (${team.AgeGroup} Div${team.Division} ${team.Type}) for ${game.LocationName} on ${game.GameAt}`;
+    const inputStage = document.createElement("div");
+    inputStage.className = "stage";
+    inputStage.dataset.n = "1";
+    inputStage.textContent = "Input";
 
-  const contextStage = document.createElement("div");
-  contextStage.className = "stage";
-  contextStage.dataset.n = "2";
-  contextStage.textContent = "Context";
+    const header = document.createElement("p");
+    header.textContent = `${b.RequestID} [${b.Urgency}] -> ${team.Name} (${team.AgeGroup} Div${team.Division} ${team.Type}) for ${game.LocationName} on ${game.GameAt}`;
 
-  const contextNote = document.createElement("p");
-  contextNote.textContent = "Reads: destination team & game, the full candidate pool (open + already-committed loan requests), every other open Borrow request (for double-booking and FIFO checks), eligibility_rules.md, escalation_rules.md.";
+    const contextStage = document.createElement("div");
+    contextStage.className = "stage";
+    contextStage.dataset.n = "2";
+    contextStage.textContent = "Context";
 
-  const runBtn = document.createElement("button");
-  runBtn.className = "btn primary";
-  runBtn.textContent = "Run";
-  runBtn.addEventListener("click", () => runCase(b.RequestID));
+    const contextNote = document.createElement("p");
+    contextNote.textContent = "Reads: destination team & game, the full candidate pool (open + already-committed loan requests), every other open Borrow request (for double-booking and FIFO checks), eligibility_rules.md, escalation_rules.md.";
 
-  const mainStageBtn = document.createElement("button");
-  mainStageBtn.className = "btn";
-  mainStageBtn.textContent = "Show on Main Stage";
-  mainStageBtn.addEventListener("click", () => showOnMainStage(b.RequestID));
+    const runBtn = document.createElement("button");
+    runBtn.className = "btn primary";
+    runBtn.textContent = "Run";
+    runBtn.addEventListener("click", () => runCase(b.RequestID));
 
-  const resultDiv = document.createElement("div");
-  resultDiv.id = `result-${b.RequestID}`;
+    const mainStageBtn = document.createElement("button");
+    mainStageBtn.className = "btn";
+    mainStageBtn.textContent = "Show on Main Stage";
+    mainStageBtn.addEventListener("click", () => showOnMainStage(b.RequestID));
 
-  detail.appendChild(inputStage);
-  detail.appendChild(header);
-  detail.appendChild(contextStage);
-  detail.appendChild(contextNote);
-  detail.appendChild(buildCandidatePoolList());
-  detail.appendChild(runBtn);
-  detail.appendChild(mainStageBtn);
-  detail.appendChild(resultDiv);
-  mainBodyEl.appendChild(detail);
-});
+    const resultDiv = document.createElement("div");
+    resultDiv.id = `result-${b.RequestID}`;
+
+    detail.appendChild(inputStage);
+    detail.appendChild(header);
+    detail.appendChild(contextStage);
+    detail.appendChild(contextNote);
+    detail.appendChild(buildCandidatePoolList());
+    detail.appendChild(runBtn);
+    detail.appendChild(mainStageBtn);
+    detail.appendChild(resultDiv);
+    mainBodyEl.appendChild(detail);
+  });
+}
+
+buildCaseDetails();
 
 // ---------- ONE-CLICK DEMO CHIPS (your 5 eval cases) ----------
 
@@ -1305,17 +1362,263 @@ evalChipsEl.appendChild(bE27Chip);
 
 renderCaseList();
 
+// ---------- APP MODE (Test Mode / Live Pilot Mode) ----------
+
+const TEST_MODE_SNAPSHOT = {
+  TEAMS: JSON.parse(JSON.stringify(TEAMS)),
+  PLAYERS: JSON.parse(JSON.stringify(PLAYERS)),
+  GAMES: JSON.parse(JSON.stringify(GAMES)),
+  BORROW_REQUESTS: JSON.parse(JSON.stringify(BORROW_REQUESTS)),
+  LOAN_REQUESTS: JSON.parse(JSON.stringify(LOAN_REQUESTS))
+};
+
+let APP_MODE = "test"; // "test" | "live"
+let LIVE_ROSTER_TEAMS = [];
+let LIVE_ROSTER_PLAYERS = [];
+let LIVE_ROSTER_GAMES = [];
+let LIVE_BORROW_REQUESTS = [];
+let LIVE_LOAN_REQUESTS = [];
+
+function replaceArrayContents(arr, withItems) {
+  arr.length = 0;
+  arr.push(...JSON.parse(JSON.stringify(withItems)));
+}
+
+function switchAppMode(mode) {
+  APP_MODE = mode;
+  if (mode === "test") {
+    replaceArrayContents(TEAMS, TEST_MODE_SNAPSHOT.TEAMS);
+    replaceArrayContents(PLAYERS, TEST_MODE_SNAPSHOT.PLAYERS);
+    replaceArrayContents(GAMES, TEST_MODE_SNAPSHOT.GAMES);
+    replaceArrayContents(BORROW_REQUESTS, TEST_MODE_SNAPSHOT.BORROW_REQUESTS);
+    replaceArrayContents(LOAN_REQUESTS, TEST_MODE_SNAPSHOT.LOAN_REQUESTS);
+  } else {
+    replaceArrayContents(TEAMS, LIVE_ROSTER_TEAMS);
+    replaceArrayContents(PLAYERS, LIVE_ROSTER_PLAYERS);
+    replaceArrayContents(GAMES, LIVE_ROSTER_GAMES);
+    replaceArrayContents(BORROW_REQUESTS, LIVE_BORROW_REQUESTS);
+    replaceArrayContents(LOAN_REQUESTS, LIVE_LOAN_REQUESTS);
+  }
+  SELECTED_CASE_ID = null;
+  MAINSTAGE_CASE_ID = null;
+  MAINSTAGE_MOCK = null;
+  updateModeUI();
+  buildCaseDetails();
+  renderCaseList();
+  emptyStateEl.style.display = "";
+  document.getElementById("mainstage-idle").style.display = "";
+  document.getElementById("mainstage-arena").style.display = "none";
+  document.getElementById("mainstage-arena").innerHTML = "";
+  switchView("cases");
+}
+
+function updateModeUI() {
+  const isTest = APP_MODE === "test";
+  document.getElementById("mode-label").textContent = "Mode: " + (isTest ? "Test" : "Live Pilot");
+  document.getElementById("mode-switch-btn").textContent = isTest ? "Switch to Live Pilot" : "Switch to Test Mode";
+  document.getElementById("test-mode-controls").style.display = isTest ? "" : "none";
+  document.getElementById("nav-evals-btn").style.display = isTest ? "" : "none";
+  if (!isTest && document.getElementById("evals-view").style.display !== "none") {
+    switchView("cases");
+  }
+}
+
+document.getElementById("mode-switch-btn").addEventListener("click", () => {
+  switchAppMode(APP_MODE === "test" ? "live" : "test");
+});
+
+updateModeUI();
+
 // ---------- VIEW NAV (Backstage / Main Stage / Evals) ----------
 
 function switchView(view) {
   document.getElementById("cases-view").style.display = view === "cases" ? "grid" : "none";
   document.getElementById("mainstage-view").style.display = view === "mainstage" ? "block" : "none";
   document.getElementById("evals-view").style.display = view === "evals" ? "block" : "none";
+  document.getElementById("admin-view").style.display = view === "admin" ? "block" : "none";
 }
 
 document.getElementById("nav-cases-btn").addEventListener("click", () => switchView("cases"));
 document.getElementById("nav-mainstage-btn").addEventListener("click", () => switchView("mainstage"));
 document.getElementById("nav-evals-btn").addEventListener("click", () => switchView("evals"));
+document.getElementById("nav-admin-btn").addEventListener("click", () => switchView("admin"));
+
+// ---------- DATA ADMIN (Roster CSV, Weekly Availability CSV, generation) ----------
+
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(",").map(h => h.trim());
+  return lines.slice(1).map(line => {
+    const cells = line.split(",").map(c => c.trim());
+    const row = {};
+    headers.forEach((h, i) => { row[h] = cells[i]; });
+    return row;
+  });
+}
+
+document.getElementById("roster-load-btn").addEventListener("click", () => {
+  const statusEl = document.getElementById("roster-status");
+  const file = document.getElementById("roster-csv-input").files[0];
+  if (!file) { statusEl.textContent = "Choose a CSV file first."; return; }
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const rows = parseCSV(reader.result);
+      const required = ["PlayerID","PlayerName","Age","Gender","JerseyNumber","TeamID","TeamName","AgeGroup","Division","Type","AgeCoordinator","TeamManager"];
+      const missing = required.filter(f => !(f in (rows[0] || {})));
+      if (missing.length) { statusEl.textContent = "Missing columns: " + missing.join(", "); return; }
+
+      const unknownAgeGroups = [...new Set(rows.map(r => r.AgeGroup))].filter(ag => !AGE_GROUP_STANDARDS[ag]);
+      if (unknownAgeGroups.length) {
+        statusEl.textContent = "Unrecognized AgeGroup value(s), not in the standards table: " + unknownAgeGroups.join(", ");
+        return;
+      }
+
+      const teamsById = {};
+      const players = [];
+      rows.forEach(r => {
+        if (!teamsById[r.TeamID]) {
+          teamsById[r.TeamID] = {
+            TeamID: r.TeamID, Name: r.TeamName, AgeGroup: r.AgeGroup,
+            Division: Number(r.Division), Type: r.Type, GameID: "",
+            AgeCoordinator: r.AgeCoordinator, TeamManager: r.TeamManager
+          };
+        }
+        players.push({
+          PlayerID: r.PlayerID, Name: r.PlayerName, Age: Number(r.Age), Gender: r.Gender,
+          AgeGroup: r.AgeGroup, Division: Number(r.Division), TeamID: r.TeamID,
+          JerseyNumber: r.JerseyNumber, IsAvailable: false, IsAvailableForSeconds: false
+        });
+      });
+      LIVE_ROSTER_TEAMS = Object.values(teamsById);
+      LIVE_ROSTER_PLAYERS = players;
+      statusEl.textContent = `Loaded ${LIVE_ROSTER_TEAMS.length} teams, ${LIVE_ROSTER_PLAYERS.length} players. Now load this week's Availability CSV, or switch to Live Pilot Mode.`;
+    } catch (e) {
+      statusEl.textContent = "Could not parse this file: " + e.message;
+    }
+  };
+  reader.readAsText(file);
+});
+
+document.getElementById("weekly-load-btn").addEventListener("click", () => {
+  const statusEl = document.getElementById("weekly-status");
+  const previewEl = document.getElementById("weekly-preview");
+  const downloadBtn = document.getElementById("weekly-download-btn");
+  previewEl.innerHTML = "";
+  downloadBtn.style.display = "none";
+
+  if (LIVE_ROSTER_PLAYERS.length === 0) {
+    statusEl.textContent = "Load the roster first - no players to validate this CSV against.";
+    return;
+  }
+  const file = document.getElementById("weekly-csv-input").files[0];
+  if (!file) { statusEl.textContent = "Choose a CSV file first."; return; }
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const rows = parseCSV(reader.result);
+      const required = ["PlayerID","TeamID","GameID","GameAt","LocationName","IsAvailable","IsAvailableForSeconds"];
+      const missing = required.filter(f => !(f in (rows[0] || {})));
+      if (missing.length) { statusEl.textContent = "Missing columns: " + missing.join(", "); return; }
+
+      const playersById = {};
+      LIVE_ROSTER_PLAYERS.forEach(p => { playersById[p.PlayerID] = p; });
+      const teamsById = {};
+      LIVE_ROSTER_TEAMS.forEach(t => { teamsById[t.TeamID] = t; });
+
+      const errors = [];
+      rows.forEach((r, i) => {
+        const p = playersById[r.PlayerID];
+        if (!p) errors.push(`Row ${i+2}: PlayerID ${r.PlayerID} not found in the loaded roster.`);
+        else if (p.TeamID !== r.TeamID) errors.push(`Row ${i+2}: PlayerID ${r.PlayerID} belongs to team ${p.TeamID} in the roster, not ${r.TeamID} as this row states.`);
+      });
+      if (errors.length) {
+        statusEl.innerHTML = "<strong>Validation errors - nothing generated:</strong><br>" + errors.join("<br>");
+        return;
+      }
+
+      LIVE_ROSTER_PLAYERS.forEach(p => { p.IsAvailable = false; p.IsAvailableForSeconds = false; });
+      const gamesById = {};
+      rows.forEach(r => {
+        const p = playersById[r.PlayerID];
+        p.IsAvailable = String(r.IsAvailable).toLowerCase() === "true";
+        p.IsAvailableForSeconds = String(r.IsAvailableForSeconds).toLowerCase() === "true";
+        teamsById[r.TeamID].GameID = r.GameID;
+        gamesById[r.GameID] = { GameID: r.GameID, GameAt: r.GameAt, LocationName: r.LocationName, IsOn: true, FinalStatus: "Active" };
+      });
+      LIVE_ROSTER_GAMES = Object.values(gamesById);
+
+      const now = new Date();
+      const nowStr = now.toISOString().slice(0,16).replace("T"," ");
+      let lseq = 1;
+      const loanRequests = LIVE_ROSTER_PLAYERS.filter(p => p.IsAvailableForSeconds).map(p => ({
+        RequestID: `L-PILOT-${p.PlayerID}-${lseq++}`,
+        Type: "Loan", PlayerID: p.PlayerID, SourceTeamID: p.TeamID,
+        Urgency: "Low", RequestedAt: nowStr, RequestStatus: "Open", RelatedRequestIDs: ""
+      }));
+
+      const borrowRequests = [];
+      LIVE_ROSTER_TEAMS.forEach(team => {
+        const standard = AGE_GROUP_STANDARDS[team.AgeGroup];
+        if (!standard) return;
+        const available = LIVE_ROSTER_PLAYERS.filter(p => p.TeamID === team.TeamID && p.IsAvailable).length;
+        let need = 0, urgency = null;
+        if (available <= standard.Minimum) { need = standard.Minimum - available; urgency = "High"; }
+        else if (available < standard.Threshold) { need = standard.Threshold - available; urgency = "Medium"; }
+        else if (available < standard.Size) { need = standard.Size - available; urgency = "Low"; }
+        need = Math.min(need, 5);
+        let bseq = 1;
+        for (let i = 0; i < need; i++) {
+          borrowRequests.push({
+            RequestID: `B-PILOT-${team.TeamID}-${bseq++}`,
+            Type: "Borrow", DestinationTeamID: team.TeamID, GameID: team.GameID,
+            Urgency: urgency, RequestedAt: nowStr, RequestStatus: "Open", MatchedPlayerID: "", RelatedRequestIDs: ""
+          });
+        }
+      });
+
+      LIVE_BORROW_REQUESTS = borrowRequests;
+      LIVE_LOAN_REQUESTS = loanRequests;
+
+      statusEl.textContent = `Generated ${borrowRequests.length} Borrow request(s) and ${loanRequests.length} Loan request(s) from ${rows.length} player rows.`;
+      const teamSummaries = LIVE_ROSTER_TEAMS.map(t => {
+        const teamBorrows = borrowRequests.filter(b => b.DestinationTeamID === t.TeamID);
+        return teamBorrows.length ? `<li>${t.Name}: ${teamBorrows.length} Borrow request(s) at ${teamBorrows[0].Urgency}</li>` : "";
+      }).join("");
+      previewEl.innerHTML = "<ul>" + teamSummaries + `<li>${loanRequests.length} Loan request(s) total</li></ul>`;
+
+      downloadBtn.style.display = "";
+      downloadBtn.onclick = () => {
+        const payload = {
+          generatedAt: now.toISOString(),
+          TEAMS: LIVE_ROSTER_TEAMS, PLAYERS: LIVE_ROSTER_PLAYERS, GAMES: LIVE_ROSTER_GAMES,
+          BORROW_REQUESTS: LIVE_BORROW_REQUESTS, LOAN_REQUESTS: LIVE_LOAN_REQUESTS
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], {type: "application/json"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = "current-requests.json";
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+    } catch (e) {
+      statusEl.textContent = "Could not parse this file: " + e.message;
+    }
+  };
+  reader.readAsText(file);
+});
+
+// On load, try to pick up an already-published current-requests.json (for coordinators who never touch Data Admin themselves)
+fetch("./current-requests.json").then(r => r.ok ? r.json() : null).then(data => {
+  if (!data) return;
+  LIVE_ROSTER_TEAMS = data.TEAMS || [];
+  LIVE_ROSTER_PLAYERS = data.PLAYERS || [];
+  LIVE_ROSTER_GAMES = data.GAMES || [];
+  LIVE_BORROW_REQUESTS = data.BORROW_REQUESTS || [];
+  LIVE_LOAN_REQUESTS = data.LOAN_REQUESTS || [];
+  if (APP_MODE === "live") switchAppMode("live");
+}).catch(() => { /* no current-requests.json published yet - Live Pilot Mode stays empty until Data Admin loads data */ });
 
 // ---------- MAIN STAGE (battle cards, experimental) ----------
 
@@ -1531,8 +1834,10 @@ function renderMainStage() {
       renderMainStage();
     });
 
-    controls.appendChild(simMatchBtn);
-    controls.appendChild(simRefuseBtn);
+    if (APP_MODE === "test") {
+      controls.appendChild(simMatchBtn);
+      controls.appendChild(simRefuseBtn);
+    }
     controls.appendChild(revealBtn);
 
     const dismissBtn = document.createElement("button");
