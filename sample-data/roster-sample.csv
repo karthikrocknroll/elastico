@@ -1,0 +1,112 @@
+PlayerID,PlayerName,Age,Gender,JerseyNumber,TeamID,TeamName,AgeGroup,Division,Type,AgeCoordinator,TeamManager
+P901,Wes Reilly,9,Male,1,T-P01,Panthers - U9 - Mixed,U9,1,Mixed,Daniel Osei,Priya Shah
+P902,Ruby Kim,9,Female,2,T-P01,Panthers - U9 - Mixed,U9,1,Mixed,Daniel Osei,Priya Shah
+P903,Owen Brooks,9,Male,3,T-P01,Panthers - U9 - Mixed,U9,1,Mixed,Daniel Osei,Priya Shah
+P904,Isla Baxter,9,Female,4,T-P01,Panthers - U9 - Mixed,U9,1,Mixed,Daniel Osei,Priya Shah
+P905,Jude Chan,8,Male,5,T-P01,Panthers - U9 - Mixed,U9,1,Mixed,Daniel Osei,Priya Shah
+P906,Piper Kim,8,Female,6,T-P01,Panthers - U9 - Mixed,U9,1,Mixed,Daniel Osei,Priya Shah
+P907,Micah Park,8,Male,7,T-P01,Panthers - U9 - Mixed,U9,1,Mixed,Daniel Osei,Priya Shah
+P991,Jordan Lee,9,Male,6,T-P02,Comets - U9 - Mixed,U9,1,Mixed,Daniel Osei,Owen Fitzgerald
+P8101,Noah Osei,8,Male,1,T-P02,Comets - U9 - Mixed,U9,1,Mixed,Daniel Osei,Owen Fitzgerald
+P8102,Layla Ortiz,9,Female,2,T-P02,Comets - U9 - Mixed,U9,1,Mixed,Daniel Osei,Owen Fitzgerald
+P8103,Alex Brandt,9,Male,3,T-P02,Comets - U9 - Mixed,U9,1,Mixed,Daniel Osei,Owen Fitzgerald
+P8104,Sophie Foster,8,Female,4,T-P02,Comets - U9 - Mixed,U9,1,Mixed,Daniel Osei,Owen Fitzgerald
+P8105,Miles Fitzgerald,9,Male,5,T-P02,Comets - U9 - Mixed,U9,1,Mixed,Daniel Osei,Owen Fitzgerald
+P8106,Ruby Wu,9,Female,7,T-P02,Comets - U9 - Mixed,U9,1,Mixed,Daniel Osei,Owen Fitzgerald
+P8107,Jack Shah,8,Male,8,T-P02,Comets - U9 - Mixed,U9,1,Mixed,Daniel Osei,Owen Fitzgerald
+P8108,Maya Clarke,9,Female,9,T-P02,Comets - U9 - Mixed,U9,1,Mixed,Daniel Osei,Owen Fitzgerald
+P8109,Cole Reid,9,Male,10,T-P02,Comets - U9 - Mixed,U9,1,Mixed,Daniel Osei,Owen Fitzgerald
+P931,Finn Wells,8,Male,1,T-P03,Falcons - U8 - Mixed,U8,1,Mixed,Sarah Nguyen,Mark Ellis
+P932,Nora Sinclair,8,Female,2,T-P03,Falcons - U8 - Mixed,U8,1,Mixed,Sarah Nguyen,Mark Ellis
+P933,Adam Rivers,8,Male,3,T-P03,Falcons - U8 - Mixed,U8,1,Mixed,Sarah Nguyen,Mark Ellis
+P934,Ruby Nguyen,8,Female,4,T-P03,Falcons - U8 - Mixed,U8,1,Mixed,Sarah Nguyen,Mark Ellis
+P935,Adam Doyle,7,Male,5,T-P03,Falcons - U8 - Mixed,U8,1,Mixed,Sarah Nguyen,Mark Ellis
+P936,Sadie Chen,7,Female,6,T-P03,Falcons - U8 - Mixed,U8,1,Mixed,Sarah Nguyen,Mark Ellis
+P937,Caleb Sinclair,7,Male,7,T-P03,Falcons - U8 - Mixed,U8,1,Mixed,Sarah Nguyen,Mark Ellis
+P992,Toby Reyes,8,Male,8,T-P04,Eagles - U8 - Mixed,U8,1,Mixed,Sarah Nguyen,Ryan Walsh
+P8201,Ben Wallace,7,Male,1,T-P04,Eagles - U8 - Mixed,U8,1,Mixed,Sarah Nguyen,Ryan Walsh
+P8202,June Vance,8,Female,2,T-P04,Eagles - U8 - Mixed,U8,1,Mixed,Sarah Nguyen,Ryan Walsh
+P8203,Leo Brandt,8,Male,3,T-P04,Eagles - U8 - Mixed,U8,1,Mixed,Sarah Nguyen,Ryan Walsh
+P8204,Ava Chan,7,Female,4,T-P04,Eagles - U8 - Mixed,U8,1,Mixed,Sarah Nguyen,Ryan Walsh
+P8205,Dylan Blake,8,Male,5,T-P04,Eagles - U8 - Mixed,U8,1,Mixed,Sarah Nguyen,Ryan Walsh
+P8206,Poppy Fitzgerald,8,Female,6,T-P04,Eagles - U8 - Mixed,U8,1,Mixed,Sarah Nguyen,Ryan Walsh
+P8207,Owen Chapman,7,Male,7,T-P04,Eagles - U8 - Mixed,U8,1,Mixed,Sarah Nguyen,Ryan Walsh
+P8208,Mia Ellis,8,Female,9,T-P04,Eagles - U8 - Mixed,U8,1,Mixed,Sarah Nguyen,Ryan Walsh
+P8209,Liam Park,8,Male,10,T-P04,Eagles - U8 - Mixed,U8,1,Mixed,Sarah Nguyen,Ryan Walsh
+P951,Leo Everly,9,Male,1,T-P05,Hawks - U9 - Mixed,U9,1,Mixed,Grace Kim,Tariq Hussain
+P952,Ava Brandt,9,Female,2,T-P05,Hawks - U9 - Mixed,U9,1,Mixed,Grace Kim,Tariq Hussain
+P953,Cole Marsh,9,Male,3,T-P05,Hawks - U9 - Mixed,U9,1,Mixed,Grace Kim,Tariq Hussain
+P954,Della Ferreira,9,Female,4,T-P05,Hawks - U9 - Mixed,U9,1,Mixed,Grace Kim,Tariq Hussain
+P955,Gavin Frost,8,Male,5,T-P05,Hawks - U9 - Mixed,U9,1,Mixed,Grace Kim,Tariq Hussain
+P956,Hazel Quinn,8,Female,6,T-P05,Hawks - U9 - Mixed,U9,1,Mixed,Grace Kim,Tariq Hussain
+P957,Eli Holt,8,Male,7,T-P05,Hawks - U9 - Mixed,U9,1,Mixed,Grace Kim,Tariq Hussain
+P961,Sadie Reyes,9,Female,1,T-P06,Wombats - U9 - Girls,U9,1,Girls only,Grace Kim,Naomi Clarke
+P962,Mia Silva,9,Female,2,T-P06,Wombats - U9 - Girls,U9,1,Girls only,Grace Kim,Naomi Clarke
+P963,Isla Cooper,9,Female,3,T-P06,Wombats - U9 - Girls,U9,1,Girls only,Grace Kim,Naomi Clarke
+P964,Freya Brandt,9,Female,4,T-P06,Wombats - U9 - Girls,U9,1,Girls only,Grace Kim,Naomi Clarke
+P965,Hazel Foster,8,Female,5,T-P06,Wombats - U9 - Girls,U9,1,Girls only,Grace Kim,Naomi Clarke
+P966,Hazel Chan,8,Female,6,T-P06,Wombats - U9 - Girls,U9,1,Girls only,Grace Kim,Naomi Clarke
+P967,Ava Sinclair,8,Female,7,T-P06,Wombats - U9 - Girls,U9,1,Girls only,Grace Kim,Naomi Clarke
+P993,Zoe Bennett,9,Female,5,T-P07,Lions - U9 - Girls,U9,1,Girls only,Grace Kim,Harper Quinn
+P8901,Chloe Ferreira,8,Female,1,T-P07,Lions - U9 - Girls,U9,1,Girls only,Grace Kim,Harper Quinn
+P8902,Della Quinn,9,Female,2,T-P07,Lions - U9 - Girls,U9,1,Girls only,Grace Kim,Harper Quinn
+P8903,Nina Quinn,9,Female,3,T-P07,Lions - U9 - Girls,U9,1,Girls only,Grace Kim,Harper Quinn
+P8904,Poppy Wallace,8,Female,4,T-P07,Lions - U9 - Girls,U9,1,Girls only,Grace Kim,Harper Quinn
+P8905,Piper Sinclair,9,Female,6,T-P07,Lions - U9 - Girls,U9,1,Girls only,Grace Kim,Harper Quinn
+P8906,Sadie Everly,9,Female,7,T-P07,Lions - U9 - Girls,U9,1,Girls only,Grace Kim,Harper Quinn
+P8907,Piper Whitfield,8,Female,8,T-P07,Lions - U9 - Girls,U9,1,Girls only,Grace Kim,Harper Quinn
+P8908,Ivy Fitzgerald,9,Female,9,T-P07,Lions - U9 - Girls,U9,1,Girls only,Grace Kim,Harper Quinn
+P8909,Maya Doyle,9,Female,10,T-P07,Lions - U9 - Girls,U9,1,Girls only,Grace Kim,Harper Quinn
+P971,Cole Ellis,12,Male,1,T-P08,Tigers - U12 - Mixed,U12,1,Mixed,Leah Whitfield,Noah Sinclair
+P972,Isla Doyle,12,Female,2,T-P08,Tigers - U12 - Mixed,U12,1,Mixed,Leah Whitfield,Noah Sinclair
+P973,Liam Boyd,12,Male,3,T-P08,Tigers - U12 - Mixed,U12,1,Mixed,Leah Whitfield,Noah Sinclair
+P974,Zara Everly,12,Female,4,T-P08,Tigers - U12 - Mixed,U12,1,Mixed,Leah Whitfield,Noah Sinclair
+P975,Wes Clarke,11,Male,5,T-P08,Tigers - U12 - Mixed,U12,1,Mixed,Leah Whitfield,Noah Sinclair
+P976,Amelia Foster,11,Female,6,T-P08,Tigers - U12 - Mixed,U12,1,Mixed,Leah Whitfield,Noah Sinclair
+P977,Theo West,11,Male,7,T-P08,Tigers - U12 - Mixed,U12,1,Mixed,Leah Whitfield,Noah Sinclair
+P981,Ethan Wu,9,Male,4,T-P09,Colts - U9 - Mixed,U9,1,Mixed,Daniel Osei,Ivy Chen
+P8401,Nolan Cooper,8,Male,1,T-P09,Colts - U9 - Mixed,U9,1,Mixed,Daniel Osei,Ivy Chen
+P8402,June Kim,9,Female,2,T-P09,Colts - U9 - Mixed,U9,1,Mixed,Daniel Osei,Ivy Chen
+P8403,Finn Anderson,9,Male,3,T-P09,Colts - U9 - Mixed,U9,1,Mixed,Daniel Osei,Ivy Chen
+P8404,Mia Chapman,8,Female,5,T-P09,Colts - U9 - Mixed,U9,1,Mixed,Daniel Osei,Ivy Chen
+P8405,Caleb Pratt,9,Male,6,T-P09,Colts - U9 - Mixed,U9,1,Mixed,Daniel Osei,Ivy Chen
+P8406,Zara Reyes,9,Female,7,T-P09,Colts - U9 - Mixed,U9,1,Mixed,Daniel Osei,Ivy Chen
+P8407,Jack Dunn,8,Male,8,T-P09,Colts - U9 - Mixed,U9,1,Mixed,Daniel Osei,Ivy Chen
+P8408,Nora Frost,9,Female,9,T-P09,Colts - U9 - Mixed,U9,1,Mixed,Daniel Osei,Ivy Chen
+P8409,Rhys West,9,Male,10,T-P09,Colts - U9 - Mixed,U9,1,Mixed,Daniel Osei,Ivy Chen
+P983,Grace Liu,11,Female,3,T-P10,Otters - U11 - Mixed,U11,2,Mixed,Marco Silva,Fiona Doyle
+P8701,Jack Whitfield,10,Male,1,T-P10,Otters - U11 - Mixed,U11,2,Mixed,Marco Silva,Fiona Doyle
+P8702,Bella Pratt,11,Female,2,T-P10,Otters - U11 - Mixed,U11,2,Mixed,Marco Silva,Fiona Doyle
+P8703,Micah Dunn,11,Male,4,T-P10,Otters - U11 - Mixed,U11,2,Mixed,Marco Silva,Fiona Doyle
+P8704,Maya Coleman,10,Female,5,T-P10,Otters - U11 - Mixed,U11,2,Mixed,Marco Silva,Fiona Doyle
+P8705,Ben Delaney,11,Male,6,T-P10,Otters - U11 - Mixed,U11,2,Mixed,Marco Silva,Fiona Doyle
+P8706,Grace Brooks,11,Female,7,T-P10,Otters - U11 - Mixed,U11,2,Mixed,Marco Silva,Fiona Doyle
+P8707,Jude Wu,10,Male,8,T-P10,Otters - U11 - Mixed,U11,2,Mixed,Marco Silva,Fiona Doyle
+P8708,Amelia Delaney,11,Female,9,T-P10,Otters - U11 - Mixed,U11,2,Mixed,Marco Silva,Fiona Doyle
+P8709,Jude Osei,11,Male,10,T-P10,Otters - U11 - Mixed,U11,2,Mixed,Marco Silva,Fiona Doyle
+P8710,Layla Hale,10,Female,11,T-P10,Otters - U11 - Mixed,U11,2,Mixed,Marco Silva,Fiona Doyle
+P8711,Eli Pratt,11,Male,12,T-P10,Otters - U11 - Mixed,U11,2,Mixed,Marco Silva,Fiona Doyle
+P8712,Poppy Foster,11,Female,13,T-P10,Otters - U11 - Mixed,U11,2,Mixed,Marco Silva,Fiona Doyle
+P982,Owen Park,12,Male,2,T-P11,Foxes - U12 - Mixed,U12,1,Mixed,Leah Whitfield,Ella Marsh
+P8501,Ben Lee,11,Male,1,T-P11,Foxes - U12 - Mixed,U12,1,Mixed,Leah Whitfield,Ella Marsh
+P8502,Bella Brandt,12,Female,3,T-P11,Foxes - U12 - Mixed,U12,1,Mixed,Leah Whitfield,Ella Marsh
+P8503,Kai Kim,12,Male,4,T-P11,Foxes - U12 - Mixed,U12,1,Mixed,Leah Whitfield,Ella Marsh
+P8504,Hazel Reilly,11,Female,5,T-P11,Foxes - U12 - Mixed,U12,1,Mixed,Leah Whitfield,Ella Marsh
+P8505,Ben Ferreira,12,Male,6,T-P11,Foxes - U12 - Mixed,U12,1,Mixed,Leah Whitfield,Ella Marsh
+P8506,Nina Fischer,12,Female,7,T-P11,Foxes - U12 - Mixed,U12,1,Mixed,Leah Whitfield,Ella Marsh
+P8507,Theo Chen,11,Male,8,T-P11,Foxes - U12 - Mixed,U12,1,Mixed,Leah Whitfield,Ella Marsh
+P8508,Lucy Reyes,12,Female,9,T-P11,Foxes - U12 - Mixed,U12,1,Mixed,Leah Whitfield,Ella Marsh
+P8509,Ethan Boyd,12,Male,10,T-P11,Foxes - U12 - Mixed,U12,1,Mixed,Leah Whitfield,Ella Marsh
+P8510,Lucy Coleman,11,Female,11,T-P11,Foxes - U12 - Mixed,U12,1,Mixed,Leah Whitfield,Ella Marsh
+P8511,Miles Delaney,12,Male,12,T-P11,Foxes - U12 - Mixed,U12,1,Mixed,Leah Whitfield,Ella Marsh
+P8512,Amelia Rivers,12,Female,13,T-P11,Foxes - U12 - Mixed,U12,1,Mixed,Leah Whitfield,Ella Marsh
+P994,Liam Osei,8,Male,10,T-P12,Sharks - U8 - Mixed,U8,1,Mixed,Sarah Nguyen,Lucas Ferreira
+P8301,Alex Hussain,7,Male,1,T-P12,Sharks - U8 - Mixed,U8,1,Mixed,Sarah Nguyen,Lucas Ferreira
+P8302,Faye Reilly,8,Female,2,T-P12,Sharks - U8 - Mixed,U8,1,Mixed,Sarah Nguyen,Lucas Ferreira
+P8303,Theo Frost,8,Male,3,T-P12,Sharks - U8 - Mixed,U8,1,Mixed,Sarah Nguyen,Lucas Ferreira
+P8304,Amelia Nguyen,7,Female,4,T-P12,Sharks - U8 - Mixed,U8,1,Mixed,Sarah Nguyen,Lucas Ferreira
+P8305,Owen Cooper,8,Male,5,T-P12,Sharks - U8 - Mixed,U8,1,Mixed,Sarah Nguyen,Lucas Ferreira
+P8306,Maya Vance,8,Female,6,T-P12,Sharks - U8 - Mixed,U8,1,Mixed,Sarah Nguyen,Lucas Ferreira
+P8307,Leo Marsh,7,Male,7,T-P12,Sharks - U8 - Mixed,U8,1,Mixed,Sarah Nguyen,Lucas Ferreira
+P8308,Layla Doyle,8,Female,8,T-P12,Sharks - U8 - Mixed,U8,1,Mixed,Sarah Nguyen,Lucas Ferreira
+P8309,Liam Nguyen,8,Male,9,T-P12,Sharks - U8 - Mixed,U8,1,Mixed,Sarah Nguyen,Lucas Ferreira

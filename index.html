@@ -159,9 +159,21 @@ body {
 /* ═══ OUTPUT FIELDS — labeled, judgeable in under a minute ═══ */
 .field { display: grid; grid-template-columns: 160px 1fr; gap: var(--sp-3); padding: var(--sp-2) 0; border-bottom: var(--border-w) solid var(--line); }
 .field:last-child { border-bottom: 0; }
-.field .k { font-size: var(--fs-0); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); padding-top: 2px; }
+.field .k { font-size: var(--fs-0); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); padding-top: 2px; display: flex; align-items: center; justify-content: space-between; gap: var(--sp-1); }
 .field .v { color: var(--ink); }
 .field .v.why { color: var(--ink-2); font-style: italic; }
+
+.copy-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; padding: 0; border-radius: var(--radius-sm);
+  border: var(--border-w) solid transparent; background: transparent; color: var(--ink-3);
+  cursor: pointer; flex-shrink: 0;
+}
+.copy-btn:hover { color: var(--accent); border-color: var(--line); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.copy-btn.copied { color: var(--ok); }
+.copy-btn svg { display: block; }
+
+.run-time { font-size: var(--fs-0); color: var(--ink-3); padding: var(--sp-1) 0 var(--sp-2); }
 
 /* ═══ STATUS BADGES ═══ */
 .badge {
@@ -364,6 +376,8 @@ body {
     <div class="panel-body">
       <div id="test-mode-controls">
         <div id="eval-chips"></div>
+      </div>
+      <div id="run-all-controls">
         <button class="btn primary" id="run-all-btn">Run All</button>
         <span id="run-all-progress"></span>
         <p id="run-all-summary"></p>
@@ -620,6 +634,11 @@ Scoped to the Match Making + Approve/Reject loop only (Elastico - Player Availab
 
 - A candidate's AgeGroup category must be the same as, or nominally younger than, the destination team's AgeGroup.
 - A candidate from an OLDER AgeGroup category than the destination fails this check outright. This is a category mismatch, not a play-up cap violation - cite it as 1a, never as the play-up cap.
+- Mechanical check, do this first: read the number after the "U" in each AgeGroup (U9 → 9, U8 → 8, etc). Compare the candidate's number to the destination's number.
+  - Candidate's number GREATER than destination's number (e.g. candidate U9 vs destination U8): the candidate is OLDER. Fail 1a immediately. Do not compute an actual-age difference. Do not look at section 1b - it does not apply and never will for this candidate, regardless of how close their actual ages are.
+  - Candidate's number EQUAL to destination's number: same category, 1a passes, 1b does not apply either (nothing to check - they're not playing up).
+  - Candidate's number LESS than destination's number (e.g. candidate U8 vs destination U9): the candidate is YOUNGER and is playing up. 1a passes; now check 1b's actual-age cap.
+- "Same category" means the numbers are EQUAL. A candidate whose number is one higher than the destination's is not "the same category" and is not "one year above within some cap" - there is no cap in this direction; it is an outright 1a failure.
 
 ### 1b. Actual-Age Play-Up Cap
 
@@ -700,7 +719,7 @@ The agent is hired to run match making for an Age Coordinator's open Borrow requ
 CONTEXT:
 Use only the embedded data and policy constants below. Never invent facts.
 - TEAMS: team roster (TeamID, Name, AgeGroup, Division, Type, GameID)
-- PLAYERS: player roster (PlayerID, Name, Age, Gender, AgeGroup, Division, TeamID, JerseyNumber, IsAvailable)
+- PLAYERS: player roster (PlayerID, Name, Age, Gender, AgeGroup, Division, TeamID, JerseyNumber)
 - GAMES: game schedule (GameID, GameAt, LocationName)
 - BORROW_REQUESTS: open/awaiting Borrow requests (the cases)
 - LOAN_REQUESTS: the candidate pool. Includes both Open and Awaiting Approval requests - an Awaiting Approval Loan means that player is already tentatively committed to a DIFFERENT Borrow request (check otherBorrowRequests for which one). Do not treat an Awaiting Approval candidate as free; apply the double-booking / already-committed reasoning to exclude them unless you are re-evaluating that exact same request. Each candidate in the pool includes SourceTeamGame (that candidate's own team's game - GameAt, LocationName) - this is the data you check against the destination's Game.GameAt to evaluate the own-game-conflict rule. This data is always provided; never claim it is missing. This is a date/time-only check - LocationName never resolves it. If the candidate's own team's SourceTeamGame.GameAt exactly matches the destination's Game.GameAt (same date and time), that is always a conflict, whether the two games share a location or not. Do not treat a different LocationName as evidence against a conflict - a player cannot be in two places when the games are simultaneous.
@@ -722,7 +741,7 @@ Do your analysis BEFORE writing your conclusion - write the WHY field first, wor
 
 Reply using exactly this format: one field per line, each line starting with the exact label followed by a colon and a single-line value. Print the fields in exactly this order: WHY, STATUS, REASON, REQUEST, DESTINATION, CANDIDATE, ELIGIBILITY_CONFIRMATION, CITATIONS, CROSS_CATEGORY_NOTE, JERSEY_NOTE. Do not add any text before the first label or after the last line. Omit CROSS_CATEGORY_NOTE and JERSEY_NOTE entirely when they don't apply. Omit REASON only when STATUS is OK.
 
-WHY: Work out the real answer here first. Before settling on a candidate, check otherBorrowRequests for any other Open Borrow request that could also claim the same candidate (see Selection Order note below) - this is eligibility_rules.md section 8, and it is easy to miss because it means checking a DIFFERENT request's data, not just this one's. One to three sentences: the winning (or closest) candidate's decisive data points, written as actual numbers you compared (e.g. "actual age 6 vs destination nominal age 10, difference 4"), and the eligibility_rules.md section/subsection applied. Do not walk through every candidate in the pool one by one - that is internal work, not output.
+WHY: Work out the real answer here first. Before settling on a candidate, check otherBorrowRequests for any other Open Borrow request that could also claim the same candidate (see Selection Order note below) - this is eligibility_rules.md section 8. Each entry in otherBorrowRequests includes CurrentTopEligibleCandidateID - the RequestID of the candidate that request would actually select under section 8's FIFO rule, already computed for you. This value is authoritative: do not re-derive it, do not re-screen that other request's own candidate pool yourself, and do not reason about whether some other candidate "would also pass" that request's rules - only CurrentTopEligibleCandidateID decides who that request would take. A candidate is claimed by another request ONLY when that request outranks yours in priority (see Selection Order note) AND its CurrentTopEligibleCandidateID exactly equals this candidate's own RequestID. If CurrentTopEligibleCandidateID is null, or is a different RequestID than this candidate's, this candidate is NOT claimed by that request, no matter how much earlier that request was made or whether this candidate could individually pass its rules. One to three sentences: the winning (or closest) candidate's decisive data points, written as actual numbers you compared (e.g. "actual age 6 vs destination nominal age 10, difference 4"), and the eligibility_rules.md section/subsection applied. Do not walk through every candidate in the pool one by one - that is internal work, not output.
 STATUS: OK, or REFUSED-ESCALATE if every available candidate fails a hard eligibility rule, a rule cannot be evaluated because required data is missing, or your best candidate is already claimed by an earlier-requested competing Borrow request under Selection Order. Must match what you just concluded in WHY - never contradict your own numbers.
 REASON: required whenever STATUS is REFUSED-ESCALATE - one or two sentences stating the winning constraint only, consistent with WHY. Cite the eligibility_rules.md section number.
 REQUEST: BorrowRequestID, Urgency
@@ -733,7 +752,7 @@ CITATIONS: always required, but SHORT - a maximum of 6 items, comma-separated. T
 CROSS_CATEGORY_NOTE: only if the Mixed-to-Girls-only allowance was the reason this candidate qualifies
 JERSEY_NOTE: only if the candidate's JerseyNumber clashes with the destination roster
 
-Selection Order note (eligibility_rules.md section 8): a candidate who otherwise passes every rule for THIS request may still not be yours - but a request is never at risk from a competitor at a LOWER Urgency tier than itself. If THIS request is High, no Medium or Low request can ever claim your candidate - skip them entirely, do not check them further. Otherwise, check every other Open Borrow request whose Urgency is High, or that shares this request's own tier, for whether your candidate would ALSO pass every rule (1a/1b, 2, 3, 4, 5) against it too - look at that other request's own DestinationTeam (AgeGroup, Division, Type) and Game. This is most likely to matter when two requests have near-identical DestinationTeam profiles (same AgeGroup, Division, Type) - that similarity is a strong signal they are competing for the same pool of candidates. That similarity note is a hint about when competition is common - it is NOT a filter for which requests to check. You must still individually re-test every High-tier or same-tier request even when its destination Type differs from yours, especially for a Female candidate: section 3's cross-category allowance means she can legitimately pass for both a Girls-only and a Mixed destination despite the Type difference. Never dismiss a request as "not competing" based on profile or Type alone - only an actual rule-by-rule check settles it. Among any other request where your candidate would also pass, decide priority in this order, not RequestedAt alone: (1) a High-tier request always outranks a Medium- or Low-tier request, no matter how much earlier the Medium/Low request was made - Minimum not being met always matters more than who asked first; (2) between two requests in the SAME tier, the one with the earlier RequestedAt wins. If a higher-priority request wins the candidate, the candidate belongs to that request - but that request only needs and will only take ONE candidate total. Once a specific competing request claims one of your candidates, that competitor is satisfied - it cannot also claim a second, different candidate of yours. Do not reuse one competitor's claim to disqualify multiple candidates. Move to your next-earliest eligible candidate for THIS request (checked against remaining, not-yet-satisfied competitors only), or REFUSED-ESCALATE if none remain. State in WHY which other request(s) you checked, including their Urgency tier, even briefly (e.g. "checked against B601 (High), also eligible - High outranks this Medium request regardless of RequestedAt - candidate belongs to B601").
+Selection Order note (eligibility_rules.md section 8): a candidate who otherwise passes every rule for THIS request may still not be yours - but a request is never at risk from a competitor at a LOWER Urgency tier than itself. If THIS request is High, no Medium or Low request can ever claim your candidate - skip them entirely, do not check them further. Otherwise, check every other Open Borrow request whose Urgency is High, or that shares this request's own tier: read its CurrentTopEligibleCandidateID (already computed for you - do not re-derive it, and do not screen that other request's candidate pool yourself) and compare it directly to your candidate's own RequestID. Only an exact ID match means your candidate is that request's pick - the fact that your candidate would individually pass that other request's rules is not enough on its own and must never be used to conclude a claim. Among any other request whose CurrentTopEligibleCandidateID matches your candidate, decide priority in this order, not RequestedAt alone: (1) a High-tier request always outranks a Medium- or Low-tier request, no matter how much earlier the Medium/Low request was made - Minimum not being met always matters more than who asked first; (2) between two requests in the SAME tier, the one with the earlier RequestedAt wins. If a higher-priority request's CurrentTopEligibleCandidateID matches, the candidate belongs to that request - but that request only needs and will only take ONE candidate total. Once a specific competing request claims one of your candidates, that competitor is satisfied - it cannot also claim a second, different candidate of yours. Do not reuse one competitor's claim to disqualify multiple candidates. Move to your next-earliest eligible candidate for THIS request (checked against remaining, not-yet-satisfied competitors only), or REFUSED-ESCALATE if none remain. State in WHY which other request(s) you checked, including their Urgency tier and CurrentTopEligibleCandidateID, even briefly (e.g. "checked against B601 (High), CurrentTopEligibleCandidateID L802 matches this candidate - High outranks this Medium request - candidate belongs to B601").
 
 Passing the AgeGroup-category check (1a) is never enough on its own to set STATUS to OK - independently verify the actual-age play-up cap (1b, only when playing up), and every other hard rule in eligibility_rules.md, before recommending a candidate. When in doubt, REFUSED-ESCALATE is the safe choice, not a guess. Keep the whole response terse: a human reviewer must be able to judge it in under a minute. Do your elimination work silently; report only the conclusion and its decisive reason.
 
@@ -784,6 +803,56 @@ function findPlayer(playerId) {
   return PLAYERS.find(p => p.PlayerID === playerId);
 }
 
+function nominalAgeFromGroup(ageGroup) {
+  const match = /^U(\d+)$/.exec(ageGroup || "");
+  return match ? parseInt(match[1], 10) : null;
+}
+
+function candidateClearsHardRules(candidate, destinationTeam, destinationGame) {
+  const player = candidate.Player;
+  const sourceTeam = candidate.SourceTeam;
+  if (!player || !sourceTeam || !destinationTeam) return false;
+
+  const destNominalAge = nominalAgeFromGroup(destinationTeam.AgeGroup);
+  const candNominalAge = nominalAgeFromGroup(player.AgeGroup);
+  if (destNominalAge === null || candNominalAge === null) return false;
+
+  if (candNominalAge > destNominalAge) return false; // 1a - older category
+  if (candNominalAge < destNominalAge && (destNominalAge - player.Age) > 2) return false; // 1b - play-up cap
+
+  if (destNominalAge >= 9 && player.Division > destinationTeam.Division) return false; // 2 - division (U9+)
+
+  if (destinationTeam.Type === "Mixed") {
+    if (sourceTeam.Type !== "Mixed" && sourceTeam.Type !== "Girls only") return false; // 3
+  } else if (destinationTeam.Type === "Girls only") {
+    if (player.Gender !== "Female") return false; // 3
+    if (sourceTeam.Type !== "Mixed" && sourceTeam.Type !== "Girls only") return false; // 3
+  }
+
+  if (candidate.SourceTeamGame && destinationGame && candidate.SourceTeamGame.GameAt === destinationGame.GameAt) return false; // 4a - own-game conflict
+
+  if (candidate.SourceTeamID === destinationTeam.TeamID) return false; // 5 - same-team exclusion
+
+  return true;
+}
+
+function topEligibleCandidateFor(destinationTeamId, gameId) {
+  const destinationTeam = findTeam(destinationTeamId);
+  const game = findGame(gameId);
+  if (!destinationTeam) return null;
+
+  const eligible = LOAN_REQUESTS
+    .filter(l => l.RequestStatus === "Open")
+    .map(l => {
+      const sourceTeam = findTeam(l.SourceTeamID);
+      return { ...l, Player: findPlayer(l.PlayerID), SourceTeam: sourceTeam, SourceTeamGame: sourceTeam ? findGame(sourceTeam.GameID) : null };
+    })
+    .filter(c => candidateClearsHardRules(c, destinationTeam, game))
+    .sort((a, b) => a.RequestedAt.localeCompare(b.RequestedAt));
+
+  return eligible.length ? eligible[0].RequestID : null;
+}
+
 document.getElementById("topbar-status").textContent =
   `${TEAMS.length} teams · ${BORROW_REQUESTS.filter(b => b.RequestStatus === "Open").length} open cases`;
 
@@ -798,9 +867,10 @@ function buildCaseContext(borrowRequestId) {
     .filter(l => l.RequestStatus === "Open" || l.RequestStatus === "Awaiting Approval")
     .map(l => {
       const sourceTeam = findTeam(l.SourceTeamID);
+      const { IsAvailable, ...playerForAgent } = findPlayer(l.PlayerID);
       return {
         ...l,
-        Player: findPlayer(l.PlayerID),
+        Player: playerForAgent,
         SourceTeam: sourceTeam,
         SourceTeamGame: findGame(sourceTeam.GameID)
       };
@@ -808,13 +878,65 @@ function buildCaseContext(borrowRequestId) {
 
   const otherBorrowRequests = BORROW_REQUESTS
     .filter(b => b.RequestID !== borrowRequestId)
-    .map(b => ({ ...b, DestinationTeam: findTeam(b.DestinationTeamID), Game: findGame(b.GameID) }));
+    .map(b => ({
+      ...b,
+      DestinationTeam: findTeam(b.DestinationTeamID),
+      Game: findGame(b.GameID),
+      CurrentTopEligibleCandidateID: topEligibleCandidateFor(b.DestinationTeamID, b.GameID)
+    }));
 
   return {
     request: { ...request, DestinationTeam: destinationTeam, Game: game },
     candidatePool,
     otherBorrowRequests
   };
+}
+
+// ---------- COPY-TO-CLIPBOARD ----------
+
+const COPY_ICON_SVG = `<svg viewBox="0 0 16 16" width="12" height="12" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="5.5" y="5.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M3.5 10.5h-1a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>`;
+const CHECK_ICON_SVG = `<svg viewBox="0 0 16 16" width="12" height="12" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 8.5l3.2 3.2L13 4.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+function fallbackCopy(text) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try { document.execCommand("copy"); } catch (e) { /* no-op - clipboard unavailable */ }
+  document.body.removeChild(ta);
+}
+
+function makeCopyButton(getText) {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "copy-btn";
+  btn.title = "Copy to clipboard";
+  btn.innerHTML = COPY_ICON_SVG;
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const text = getText();
+    const showCopied = () => {
+      btn.innerHTML = CHECK_ICON_SVG;
+      btn.classList.add("copied");
+      btn.title = "Copied";
+      setTimeout(() => { btn.innerHTML = COPY_ICON_SVG; btn.classList.remove("copied"); btn.title = "Copy to clipboard"; }, 1200);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(showCopied).catch(() => { fallbackCopy(text); showCopied(); });
+    } else {
+      fallbackCopy(text);
+      showCopied();
+    }
+  });
+  return btn;
+}
+
+function formatDuration(ms) {
+  if (ms < 1000) return `${Math.round(ms)}ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
 }
 
 // ---------- PARSE + RENDER LABELED OUTPUT ----------
@@ -858,9 +980,17 @@ function parseAgentOutput(text) {
 const AGENT_RESULTS = {};
 const LAST_OUTCOME = {};
 
-function renderAgentOutput(borrowRequestId, rawText) {
+function renderAgentOutput(borrowRequestId, rawText, elapsedMs) {
   const container = document.getElementById(`result-${borrowRequestId}`);
   container.innerHTML = "";
+
+  if (typeof elapsedMs === "number") {
+    const runTime = document.createElement("div");
+    runTime.className = "run-time";
+    runTime.textContent = `Run time: ${formatDuration(elapsedMs)}`;
+    container.appendChild(runTime);
+  }
+
   const { fields, ok, missing } = parseAgentOutput(rawText);
 
   if (!ok) {
@@ -896,7 +1026,12 @@ function renderAgentOutput(borrowRequestId, rawText) {
 
     const k = document.createElement("div");
     k.className = "k";
-    k.textContent = OUTPUT_LABELS[key];
+    const kLabel = document.createElement("span");
+    kLabel.textContent = OUTPUT_LABELS[key];
+    k.appendChild(kLabel);
+    if (key === "WHY" || key === "REASON" || key === "CANDIDATE") {
+      k.appendChild(makeCopyButton(() => fields[key] || ""));
+    }
 
     const v = document.createElement("div");
     v.className = "v" + (key === "WHY" ? " why" : "");
@@ -1108,6 +1243,7 @@ async function runCase(borrowRequestId) {
   }
 
   showThinking(outputEl);
+  const startTime = performance.now();
 
   const context = buildCaseContext(borrowRequestId);
   const userMessage = `Evaluate this open Borrow request and recommend a candidate, or explain why none is eligible and escalate, per your system instructions.
@@ -1154,7 +1290,8 @@ ${POLICIES["escalation_rules.md"]}`;
 
     const data = await response.json();
     const text = (data.content && data.content[0] && data.content[0].text) || JSON.stringify(data);
-    const outcome = renderAgentOutput(borrowRequestId, text);
+    const elapsedMs = performance.now() - startTime;
+    const outcome = renderAgentOutput(borrowRequestId, text, elapsedMs);
     LAST_OUTCOME[borrowRequestId] = outcome;
     renderCaseList();
     return outcome;
@@ -1493,6 +1630,7 @@ document.getElementById("roster-load-btn").addEventListener("click", () => {
       });
       LIVE_ROSTER_TEAMS = Object.values(teamsById);
       LIVE_ROSTER_PLAYERS = players;
+      if (APP_MODE === "live") switchAppMode("live");
       statusEl.textContent = `Loaded ${LIVE_ROSTER_TEAMS.length} teams, ${LIVE_ROSTER_PLAYERS.length} players. Now load this week's Availability CSV, or switch to Live Pilot Mode.`;
     } catch (e) {
       statusEl.textContent = "Could not parse this file: " + e.message;
@@ -1550,16 +1688,21 @@ document.getElementById("weekly-load-btn").addEventListener("click", () => {
       LIVE_ROSTER_GAMES = Object.values(gamesById);
 
       const now = new Date();
-      const nowStr = now.toISOString().slice(0,16).replace("T"," ");
-      let lseq = 1;
+      function stampAt(minutesOffset) {
+        return new Date(now.getTime() + minutesOffset * 60000).toISOString().slice(0,16).replace("T"," ");
+      }
+      // RequestedAt is staggered by order of appearance (team order for Borrow, player order for Loan) -
+      // the CSV's row order is what makes FIFO / Selection Order deterministic and testable, since
+      // otherwise every request generated in one run would share the same wall-clock timestamp.
+      let lseq = 1, lidx = 0;
       const loanRequests = LIVE_ROSTER_PLAYERS.filter(p => p.IsAvailableForSeconds).map(p => ({
         RequestID: `L-PILOT-${p.PlayerID}-${lseq++}`,
         Type: "Loan", PlayerID: p.PlayerID, SourceTeamID: p.TeamID,
-        Urgency: "Low", RequestedAt: nowStr, RequestStatus: "Open", RelatedRequestIDs: ""
+        Urgency: "Low", RequestedAt: stampAt(lidx++ * 5), RequestStatus: "Open", RelatedRequestIDs: ""
       }));
 
       const borrowRequests = [];
-      LIVE_ROSTER_TEAMS.forEach(team => {
+      LIVE_ROSTER_TEAMS.forEach((team, teamIdx) => {
         const standard = AGE_GROUP_STANDARDS[team.AgeGroup];
         if (!standard) return;
         const available = LIVE_ROSTER_PLAYERS.filter(p => p.TeamID === team.TeamID && p.IsAvailable).length;
@@ -1573,13 +1716,14 @@ document.getElementById("weekly-load-btn").addEventListener("click", () => {
           borrowRequests.push({
             RequestID: `B-PILOT-${team.TeamID}-${bseq++}`,
             Type: "Borrow", DestinationTeamID: team.TeamID, GameID: team.GameID,
-            Urgency: urgency, RequestedAt: nowStr, RequestStatus: "Open", MatchedPlayerID: "", RelatedRequestIDs: ""
+            Urgency: urgency, RequestedAt: stampAt(teamIdx * 30), RequestStatus: "Open", MatchedPlayerID: "", RelatedRequestIDs: ""
           });
         }
       });
 
       LIVE_BORROW_REQUESTS = borrowRequests;
       LIVE_LOAN_REQUESTS = loanRequests;
+      if (APP_MODE === "live") switchAppMode("live");
 
       statusEl.textContent = `Generated ${borrowRequests.length} Borrow request(s) and ${loanRequests.length} Loan request(s) from ${rows.length} player rows.`;
       const teamSummaries = LIVE_ROSTER_TEAMS.map(t => {

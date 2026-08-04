@@ -1,0 +1,112 @@
+PlayerID,TeamID,GameID,GameAt,LocationName,IsAvailable,IsAvailableForSeconds
+P901,T-P01,G-P01,2026-09-06 08:00,Riverside Park,true,false
+P902,T-P01,G-P01,2026-09-06 08:00,Riverside Park,true,false
+P903,T-P01,G-P01,2026-09-06 08:00,Riverside Park,true,false
+P904,T-P01,G-P01,2026-09-06 08:00,Riverside Park,true,false
+P905,T-P01,G-P01,2026-09-06 08:00,Riverside Park,true,false
+P906,T-P01,G-P01,2026-09-06 08:00,Riverside Park,true,false
+P907,T-P01,G-P01,2026-09-06 08:00,Riverside Park,false,false
+P991,T-P02,G-P02,2026-09-06 09:00,Comet Field,true,true
+P8101,T-P02,G-P02,2026-09-06 09:00,Comet Field,true,false
+P8102,T-P02,G-P02,2026-09-06 09:00,Comet Field,true,false
+P8103,T-P02,G-P02,2026-09-06 09:00,Comet Field,true,false
+P8104,T-P02,G-P02,2026-09-06 09:00,Comet Field,true,false
+P8105,T-P02,G-P02,2026-09-06 09:00,Comet Field,true,false
+P8106,T-P02,G-P02,2026-09-06 09:00,Comet Field,true,false
+P8107,T-P02,G-P02,2026-09-06 09:00,Comet Field,true,false
+P8108,T-P02,G-P02,2026-09-06 09:00,Comet Field,true,false
+P8109,T-P02,G-P02,2026-09-06 09:00,Comet Field,true,false
+P931,T-P03,G-P03,2026-09-06 09:00,Falcon Oval,true,false
+P932,T-P03,G-P03,2026-09-06 09:00,Falcon Oval,true,false
+P933,T-P03,G-P03,2026-09-06 09:00,Falcon Oval,true,false
+P934,T-P03,G-P03,2026-09-06 09:00,Falcon Oval,true,false
+P935,T-P03,G-P03,2026-09-06 09:00,Falcon Oval,true,false
+P936,T-P03,G-P03,2026-09-06 09:00,Falcon Oval,true,false
+P937,T-P03,G-P03,2026-09-06 09:00,Falcon Oval,false,false
+P992,T-P04,G-P04,2026-09-06 09:00,Eagle Reserve,true,true
+P8201,T-P04,G-P04,2026-09-06 09:00,Eagle Reserve,true,false
+P8202,T-P04,G-P04,2026-09-06 09:00,Eagle Reserve,true,false
+P8203,T-P04,G-P04,2026-09-06 09:00,Eagle Reserve,true,false
+P8204,T-P04,G-P04,2026-09-06 09:00,Eagle Reserve,true,false
+P8205,T-P04,G-P04,2026-09-06 09:00,Eagle Reserve,true,false
+P8206,T-P04,G-P04,2026-09-06 09:00,Eagle Reserve,true,false
+P8207,T-P04,G-P04,2026-09-06 09:00,Eagle Reserve,true,false
+P8208,T-P04,G-P04,2026-09-06 09:00,Eagle Reserve,true,false
+P8209,T-P04,G-P04,2026-09-06 09:00,Eagle Reserve,true,false
+P951,T-P05,G-P05,2026-09-06 09:00,Hawk Park,true,false
+P952,T-P05,G-P05,2026-09-06 09:00,Hawk Park,true,false
+P953,T-P05,G-P05,2026-09-06 09:00,Hawk Park,true,false
+P954,T-P05,G-P05,2026-09-06 09:00,Hawk Park,true,false
+P955,T-P05,G-P05,2026-09-06 09:00,Hawk Park,true,false
+P956,T-P05,G-P05,2026-09-06 09:00,Hawk Park,true,false
+P957,T-P05,G-P05,2026-09-06 09:00,Hawk Park,false,false
+P961,T-P06,G-P06,2026-09-07 09:00,Wombat Field,true,false
+P962,T-P06,G-P06,2026-09-07 09:00,Wombat Field,true,false
+P963,T-P06,G-P06,2026-09-07 09:00,Wombat Field,true,false
+P964,T-P06,G-P06,2026-09-07 09:00,Wombat Field,true,false
+P965,T-P06,G-P06,2026-09-07 09:00,Wombat Field,true,false
+P966,T-P06,G-P06,2026-09-07 09:00,Wombat Field,true,false
+P967,T-P06,G-P06,2026-09-07 09:00,Wombat Field,false,false
+P993,T-P07,G-P07,2026-09-07 13:00,Lion Reserve,false,true
+P8901,T-P07,G-P07,2026-09-07 13:00,Lion Reserve,true,false
+P8902,T-P07,G-P07,2026-09-07 13:00,Lion Reserve,true,false
+P8903,T-P07,G-P07,2026-09-07 13:00,Lion Reserve,true,false
+P8904,T-P07,G-P07,2026-09-07 13:00,Lion Reserve,true,false
+P8905,T-P07,G-P07,2026-09-07 13:00,Lion Reserve,true,false
+P8906,T-P07,G-P07,2026-09-07 13:00,Lion Reserve,true,false
+P8907,T-P07,G-P07,2026-09-07 13:00,Lion Reserve,true,false
+P8908,T-P07,G-P07,2026-09-07 13:00,Lion Reserve,true,false
+P8909,T-P07,G-P07,2026-09-07 13:00,Lion Reserve,true,false
+P971,T-P08,G-P08,2026-09-06 10:00,Tiger Stadium,true,false
+P972,T-P08,G-P08,2026-09-06 10:00,Tiger Stadium,true,false
+P973,T-P08,G-P08,2026-09-06 10:00,Tiger Stadium,true,false
+P974,T-P08,G-P08,2026-09-06 10:00,Tiger Stadium,true,false
+P975,T-P08,G-P08,2026-09-06 10:00,Tiger Stadium,true,false
+P976,T-P08,G-P08,2026-09-06 10:00,Tiger Stadium,true,false
+P977,T-P08,G-P08,2026-09-06 10:00,Tiger Stadium,true,false
+P981,T-P09,G-P09,2026-09-06 15:00,Colt Meadow,true,true
+P8401,T-P09,G-P09,2026-09-06 15:00,Colt Meadow,true,false
+P8402,T-P09,G-P09,2026-09-06 15:00,Colt Meadow,true,false
+P8403,T-P09,G-P09,2026-09-06 15:00,Colt Meadow,true,false
+P8404,T-P09,G-P09,2026-09-06 15:00,Colt Meadow,true,false
+P8405,T-P09,G-P09,2026-09-06 15:00,Colt Meadow,true,false
+P8406,T-P09,G-P09,2026-09-06 15:00,Colt Meadow,true,false
+P8407,T-P09,G-P09,2026-09-06 15:00,Colt Meadow,true,false
+P8408,T-P09,G-P09,2026-09-06 15:00,Colt Meadow,true,false
+P8409,T-P09,G-P09,2026-09-06 15:00,Colt Meadow,true,false
+P983,T-P10,G-P10,2026-09-06 15:00,Otter Creek Park,true,true
+P8701,T-P10,G-P10,2026-09-06 15:00,Otter Creek Park,true,false
+P8702,T-P10,G-P10,2026-09-06 15:00,Otter Creek Park,true,false
+P8703,T-P10,G-P10,2026-09-06 15:00,Otter Creek Park,true,false
+P8704,T-P10,G-P10,2026-09-06 15:00,Otter Creek Park,true,false
+P8705,T-P10,G-P10,2026-09-06 15:00,Otter Creek Park,true,false
+P8706,T-P10,G-P10,2026-09-06 15:00,Otter Creek Park,true,false
+P8707,T-P10,G-P10,2026-09-06 15:00,Otter Creek Park,true,false
+P8708,T-P10,G-P10,2026-09-06 15:00,Otter Creek Park,true,false
+P8709,T-P10,G-P10,2026-09-06 15:00,Otter Creek Park,true,false
+P8710,T-P10,G-P10,2026-09-06 15:00,Otter Creek Park,true,false
+P8711,T-P10,G-P10,2026-09-06 15:00,Otter Creek Park,true,false
+P8712,T-P10,G-P10,2026-09-06 15:00,Otter Creek Park,true,false
+P982,T-P11,G-P11,2026-09-06 10:00,Fox Run Field,true,true
+P8501,T-P11,G-P11,2026-09-06 10:00,Fox Run Field,true,false
+P8502,T-P11,G-P11,2026-09-06 10:00,Fox Run Field,true,false
+P8503,T-P11,G-P11,2026-09-06 10:00,Fox Run Field,true,false
+P8504,T-P11,G-P11,2026-09-06 10:00,Fox Run Field,true,false
+P8505,T-P11,G-P11,2026-09-06 10:00,Fox Run Field,true,false
+P8506,T-P11,G-P11,2026-09-06 10:00,Fox Run Field,true,false
+P8507,T-P11,G-P11,2026-09-06 10:00,Fox Run Field,true,false
+P8508,T-P11,G-P11,2026-09-06 10:00,Fox Run Field,true,false
+P8509,T-P11,G-P11,2026-09-06 10:00,Fox Run Field,true,false
+P8510,T-P11,G-P11,2026-09-06 10:00,Fox Run Field,true,false
+P8511,T-P11,G-P11,2026-09-06 10:00,Fox Run Field,true,false
+P8512,T-P11,G-P11,2026-09-06 10:00,Fox Run Field,true,false
+P994,T-P12,G-P12,2026-09-06 13:00,Shark Bay Oval,true,true
+P8301,T-P12,G-P12,2026-09-06 13:00,Shark Bay Oval,true,false
+P8302,T-P12,G-P12,2026-09-06 13:00,Shark Bay Oval,true,false
+P8303,T-P12,G-P12,2026-09-06 13:00,Shark Bay Oval,true,false
+P8304,T-P12,G-P12,2026-09-06 13:00,Shark Bay Oval,true,false
+P8305,T-P12,G-P12,2026-09-06 13:00,Shark Bay Oval,true,false
+P8306,T-P12,G-P12,2026-09-06 13:00,Shark Bay Oval,true,false
+P8307,T-P12,G-P12,2026-09-06 13:00,Shark Bay Oval,true,false
+P8308,T-P12,G-P12,2026-09-06 13:00,Shark Bay Oval,true,false
+P8309,T-P12,G-P12,2026-09-06 13:00,Shark Bay Oval,true,false
