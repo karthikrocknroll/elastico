@@ -488,7 +488,7 @@ body {
   <div class="panel">
     <div class="panel-head">Data Admin - Roster (one-time, or whenever the roster changes)</div>
     <div class="panel-body">
-      <p>Upload a CSV with one row per player: <code>PlayerID,PlayerName,Age,Gender,JerseyNumber,TeamID,TeamName,AgeGroup,Division,Type,AgeCoordinator,TeamManager</code>. Team records are derived from the distinct TeamIDs in this file.</p>
+      <p>Upload a CSV with one row per player: <code>PlayerID,PlayerName,Age,Gender,JerseyNumber,TeamID,TeamName,AgeGroup,Division,Type,AgeCoordinator,TeamManager</code>. Team records are derived from the distinct TeamIDs in this file. (<a href="sample-data/roster-sample.csv" download>Download a sample roster CSV</a>)</p>
       <input type="file" id="roster-csv-input" accept=".csv">
       <button class="btn primary" id="roster-load-btn">Load Roster</button>
       <div id="roster-status" style="margin-top: var(--sp-3);"></div>
@@ -498,7 +498,7 @@ body {
   <div class="panel" style="margin-top: var(--sp-4);">
     <div class="panel-head">Data Admin - Weekly Availability (recurring, every week)</div>
     <div class="panel-body">
-      <p>Upload a CSV with one row per player: <code>PlayerID,TeamID,GameID,GameAt,LocationName,IsAvailable,IsAvailableForSeconds</code>. Requires the roster above to already be loaded - every PlayerID and TeamID is cross-checked against it.</p>
+      <p>Upload a CSV with one row per player: <code>PlayerID,TeamID,GameID,GameAt,LocationName,IsAvailable,IsAvailableForSeconds</code>. Requires the roster above to already be loaded - every PlayerID and TeamID is cross-checked against it. (<a href="sample-data/weekly-availability-sample.csv" download>Download a sample availability CSV</a>)</p>
       <input type="file" id="weekly-csv-input" accept=".csv">
       <button class="btn primary" id="weekly-load-btn">Load &amp; Generate</button>
       <div id="weekly-status" style="margin-top: var(--sp-3);"></div>
