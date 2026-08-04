@@ -2,7 +2,7 @@
 <html lang="en" data-skin="studio">
 <head>
 <meta charset="UTF-8">
-<title>Elastico (Player Availability &amp; Match Making Agent)</title>
+<title>Elastico (Player Match Making Agent)</title>
 <style>
 /* ═══════════════════════════════════════════════════════════════════
    AGENTIC AI CAPSTONE — LOCKED DESIGN TOKENS  v0.3
@@ -109,6 +109,30 @@ body {
   min-height: calc(100vh - 58px);
 }
 @media (max-width: 1100px) { .console { grid-template-columns: 1fr; } }
+
+/* ═══ INTRO ═══ */
+.intro-wrap { padding: var(--sp-6) var(--sp-5); min-height: calc(100vh - 58px); width: 100%; box-sizing: border-box; }
+.intro-card { width: 100%; box-sizing: border-box; }
+.intro-section-header {
+  font-size: var(--fs-0); font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: var(--sp-3);
+}
+.run-mode-row { display: flex; align-items: center; gap: var(--sp-3); }
+.mode-switch {
+  position: relative; width: 60px; height: 32px; border-radius: 999px;
+  border: none; padding: 0; cursor: pointer; flex-shrink: 0;
+  background: var(--accent);
+  transition: background .18s ease;
+}
+.mode-switch[aria-checked="true"] { background: var(--ok); }
+.mode-switch-knob {
+  position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.35);
+  transition: left .18s ease;
+}
+.mode-switch[aria-checked="true"] .mode-switch-knob { left: 31px; }
+.mode-switch-side-label { font-weight: 600; font-size: var(--fs-2); color: var(--ink-3); transition: color .18s ease, font-weight .18s ease; }
+.mode-switch-side-label.active { color: var(--ink); font-weight: 800; }
 
 .panel {
   background: var(--bg-raise); border: var(--border-w) solid var(--line);
@@ -298,10 +322,6 @@ body {
 .battle-card .stamp.overridden { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); border: 1px solid var(--warn); }
 .stage-controls { width: 100%; text-align: center; margin-top: var(--sp-4); display: flex; align-items: center; justify-content: center; gap: var(--sp-3); flex-wrap: wrap; }
 .stage-controls p { width: 100%; }
-.sim-note {
-  width: 100%; text-align: center; margin-top: var(--sp-3);
-  color: var(--warn); font-size: var(--fs-0); font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-}
 
 /* the loan-request deck (a stack of face-down cards, sliding out to the right, "?" on top) */
 .card-stack { position: relative; width: 320px; height: 340px; }
@@ -349,27 +369,71 @@ body {
 <body>
 
 <div class="topbar">
-  <div class="product">Elastico (Player Availability &amp; Match Making Agent)</div>
+  <div class="product">Elastico (Player Match Making Agent)</div>
   <div class="meta">
-    <span id="topbar-status"></span>
     <span id="view-nav">
-      <button class="btn" id="nav-cases-btn">Backstage</button>
-      <button class="btn" id="nav-mainstage-btn">Main Stage</button>
+      <button class="btn" id="nav-intro-btn" style="background:#b4a7d6; border-color:#b4a7d6;">Intro</button>
       <button class="btn" id="nav-evals-btn">Evals</button>
-      <button class="btn" id="nav-admin-btn">Data Admin</button>
     </span>
-    <span id="mode-toggle" style="margin-left: var(--sp-3);">
-      <span id="mode-label" style="font-weight:700;">Mode: Test</span>
-      <button class="btn" id="mode-switch-btn">Switch to Live Pilot</button>
-    </span>
-    <label for="api-key-input">API key</label>
-    <input type="password" id="api-key-input" placeholder="sk-ant-...">
-    <button class="btn" id="save-key-btn">Save</button>
-    <span id="key-status"></span>
   </div>
 </div>
 
-<div class="console" id="cases-view">
+<div id="intro-view" class="intro-wrap" style="display:none;">
+  <div class="panel intro-card">
+    <div class="panel-body">
+      <div class="intro-section-header">API Key:</div>
+      <div class="run-mode-row">
+        <label for="api-key-input">API key</label>
+        <input type="password" id="api-key-input" placeholder="sk-ant-...">
+        <button class="btn" id="save-key-btn">Save</button>
+        <span id="key-status"></span>
+      </div>
+
+      <div class="intro-section-header" style="margin-top: var(--sp-5);">Run Mode:</div>
+      <div class="run-mode-row">
+        <span id="mode-label-test" class="mode-switch-side-label active">Test</span>
+        <button type="button" id="intro-mode-toggle" class="mode-switch" role="switch" aria-checked="false" aria-label="Run Mode">
+          <span class="mode-switch-knob"></span>
+        </button>
+        <span id="mode-label-live" class="mode-switch-side-label">Live (Pilot)</span>
+        <button class="btn primary" id="intro-start-btn" style="margin-left: var(--sp-4);">Start</button>
+        <button class="btn" id="intro-mainstage-btn" disabled style="display:none; margin-left: var(--sp-4);">Main Stage</button>
+        <span id="mode-count-status" class="mode-switch-side-label" style="margin-left: var(--sp-4); font-weight: 600;"></span>
+      </div>
+
+      <div id="intro-uploader-block" style="display:none; margin-top: var(--sp-6); padding-top: var(--sp-5); border-top: var(--border-w) solid var(--line);">
+        <div class="intro-section-header">Data Uploader</div>
+        <p style="color: var(--accent); margin-top: var(--sp-2);">Download the required samples files and upload them to start the Main Stage</p>
+
+        <div class="panel" style="margin-top: var(--sp-3);">
+          <div class="panel-head">Data Admin - Roster (one-time, or whenever the roster changes)</div>
+          <div class="panel-body">
+            <p>Upload a CSV with one row per player: <code>PlayerID,PlayerName,Age,Gender,JerseyNumber,TeamID,TeamName,AgeGroup,Division,Type,AgeCoordinator,TeamManager</code>. Team records are derived from the distinct TeamIDs in this file.</p>
+            <p><a href="sample-data/roster-sample.csv" download>Download a sample roster CSV</a></p>
+            <input type="file" id="roster-csv-input" accept=".csv">
+            <button class="btn primary" id="roster-load-btn">Load Roster</button>
+            <div id="roster-status" style="margin-top: var(--sp-3);"></div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top: var(--sp-4);">
+          <div class="panel-head">Data Admin - Weekly Availability (recurring, every week)</div>
+          <div class="panel-body">
+            <p>Upload a CSV with one row per player: <code>PlayerID,TeamID,GameID,GameAt,LocationName,IsAvailable,IsAvailableForSeconds</code>. Requires the roster above to already be loaded - every PlayerID and TeamID is cross-checked against it.</p>
+            <p><a href="sample-data/weekly-availability-sample.csv" download>Download a sample availability CSV</a></p>
+            <input type="file" id="weekly-csv-input" accept=".csv">
+            <button class="btn primary" id="weekly-load-btn">Load &amp; Generate</button>
+            <div id="weekly-status" style="margin-top: var(--sp-3);"></div>
+            <div id="weekly-preview"></div>
+            <button class="btn" id="weekly-download-btn" style="display:none;">Download current-requests.json</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="console" id="cases-view" style="display:none;">
 
   <div class="panel">
     <div class="panel-head">Cases</div>
@@ -408,7 +472,8 @@ body {
 </div>
 
 <div id="mainstage-view" style="display:none; padding: var(--sp-4);">
-  <div style="display:flex; justify-content:flex-end; margin-bottom: var(--sp-3);">
+  <div style="display:flex; justify-content:flex-end; gap: var(--sp-2); margin-bottom: var(--sp-3);">
+    <button class="btn" id="mainstage-backstage-btn">Backstage</button>
     <button class="btn" id="mainstage-next-btn">Next &rarr;</button>
   </div>
   <div class="empty" id="mainstage-idle">
@@ -483,31 +548,6 @@ body {
   </div>
 </div>
 
-<div id="admin-view" style="display:none; padding: var(--sp-4);">
-
-  <div class="panel">
-    <div class="panel-head">Data Admin - Roster (one-time, or whenever the roster changes)</div>
-    <div class="panel-body">
-      <p>Upload a CSV with one row per player: <code>PlayerID,PlayerName,Age,Gender,JerseyNumber,TeamID,TeamName,AgeGroup,Division,Type,AgeCoordinator,TeamManager</code>. Team records are derived from the distinct TeamIDs in this file. (<a href="sample-data/roster-sample.csv" download>Download a sample roster CSV</a>)</p>
-      <input type="file" id="roster-csv-input" accept=".csv">
-      <button class="btn primary" id="roster-load-btn">Load Roster</button>
-      <div id="roster-status" style="margin-top: var(--sp-3);"></div>
-    </div>
-  </div>
-
-  <div class="panel" style="margin-top: var(--sp-4);">
-    <div class="panel-head">Data Admin - Weekly Availability (recurring, every week)</div>
-    <div class="panel-body">
-      <p>Upload a CSV with one row per player: <code>PlayerID,TeamID,GameID,GameAt,LocationName,IsAvailable,IsAvailableForSeconds</code>. Requires the roster above to already be loaded - every PlayerID and TeamID is cross-checked against it. (<a href="sample-data/weekly-availability-sample.csv" download>Download a sample availability CSV</a>)</p>
-      <input type="file" id="weekly-csv-input" accept=".csv">
-      <button class="btn primary" id="weekly-load-btn">Load &amp; Generate</button>
-      <div id="weekly-status" style="margin-top: var(--sp-3);"></div>
-      <div id="weekly-preview"></div>
-      <button class="btn" id="weekly-download-btn" style="display:none;">Download current-requests.json</button>
-    </div>
-  </div>
-
-</div>
 
 <script>
 const MODEL = "claude-sonnet-4-5";
@@ -853,8 +893,10 @@ function topEligibleCandidateFor(destinationTeamId, gameId) {
   return eligible.length ? eligible[0].RequestID : null;
 }
 
-document.getElementById("topbar-status").textContent =
-  `${TEAMS.length} teams · ${BORROW_REQUESTS.filter(b => b.RequestStatus === "Open").length} open cases`;
+function updateModeCountStatus() {
+  const openCases = BORROW_REQUESTS.filter(b => b.RequestStatus === "Open").length;
+  document.getElementById("mode-count-status").textContent = `${TEAMS.length} teams · ${openCases} open requests`;
+}
 
 // ---------- CONTEXT FOR A SINGLE CASE ----------
 
@@ -1521,7 +1563,7 @@ function replaceArrayContents(arr, withItems) {
   arr.push(...JSON.parse(JSON.stringify(withItems)));
 }
 
-function switchAppMode(mode) {
+function switchAppMode(mode, opts = {}) {
   APP_MODE = mode;
   if (mode === "test") {
     replaceArrayContents(TEAMS, TEST_MODE_SNAPSHOT.TEAMS);
@@ -1538,7 +1580,6 @@ function switchAppMode(mode) {
   }
   SELECTED_CASE_ID = null;
   MAINSTAGE_CASE_ID = null;
-  MAINSTAGE_MOCK = null;
   updateModeUI();
   buildCaseDetails();
   renderCaseList();
@@ -1546,39 +1587,56 @@ function switchAppMode(mode) {
   document.getElementById("mainstage-idle").style.display = "";
   document.getElementById("mainstage-arena").style.display = "none";
   document.getElementById("mainstage-arena").innerHTML = "";
-  switchView("cases");
+  if (opts.navigate !== false) {
+    switchView("cases");
+  }
+}
+
+function updateMainStageButtonState() {
+  const btn = document.getElementById("intro-mainstage-btn");
+  const ready = LIVE_BORROW_REQUESTS.length > 0;
+  btn.disabled = !ready;
+  btn.classList.toggle("approve", ready);
 }
 
 function updateModeUI() {
   const isTest = APP_MODE === "test";
-  document.getElementById("mode-label").textContent = "Mode: " + (isTest ? "Test" : "Live Pilot");
-  document.getElementById("mode-switch-btn").textContent = isTest ? "Switch to Live Pilot" : "Switch to Test Mode";
   document.getElementById("test-mode-controls").style.display = isTest ? "" : "none";
-  document.getElementById("nav-evals-btn").style.display = isTest ? "" : "none";
+  document.getElementById("intro-mode-toggle").setAttribute("aria-checked", String(!isTest));
+  document.getElementById("mode-label-test").classList.toggle("active", isTest);
+  document.getElementById("mode-label-live").classList.toggle("active", !isTest);
+  document.getElementById("intro-start-btn").style.display = isTest ? "" : "none";
+  document.getElementById("intro-mainstage-btn").style.display = isTest ? "none" : "";
+  updateMainStageButtonState();
+  updateModeCountStatus();
+  document.getElementById("nav-evals-btn").disabled = !isTest;
+  document.getElementById("intro-uploader-block").style.display = isTest ? "none" : "";
   if (!isTest && document.getElementById("evals-view").style.display !== "none") {
     switchView("cases");
   }
 }
 
-document.getElementById("mode-switch-btn").addEventListener("click", () => {
-  switchAppMode(APP_MODE === "test" ? "live" : "test");
+document.getElementById("intro-mode-toggle").addEventListener("click", () => {
+  switchAppMode(APP_MODE === "test" ? "live" : "test", { navigate: false });
 });
+
+document.getElementById("intro-start-btn").addEventListener("click", () => switchView("cases"));
+document.getElementById("nav-evals-btn").addEventListener("click", () => switchView("evals"));
 
 updateModeUI();
 
-// ---------- VIEW NAV (Backstage / Main Stage / Evals) ----------
+// ---------- VIEW NAV (Intro / Backstage / Main Stage / Evals) ----------
 
 function switchView(view) {
+  document.getElementById("intro-view").style.display = view === "intro" ? "block" : "none";
   document.getElementById("cases-view").style.display = view === "cases" ? "grid" : "none";
   document.getElementById("mainstage-view").style.display = view === "mainstage" ? "block" : "none";
   document.getElementById("evals-view").style.display = view === "evals" ? "block" : "none";
-  document.getElementById("admin-view").style.display = view === "admin" ? "block" : "none";
 }
 
-document.getElementById("nav-cases-btn").addEventListener("click", () => switchView("cases"));
-document.getElementById("nav-mainstage-btn").addEventListener("click", () => switchView("mainstage"));
-document.getElementById("nav-evals-btn").addEventListener("click", () => switchView("evals"));
-document.getElementById("nav-admin-btn").addEventListener("click", () => switchView("admin"));
+document.getElementById("nav-intro-btn").addEventListener("click", () => switchView("intro"));
+
+switchView("intro");
 
 // ---------- DATA ADMIN (Roster CSV, Weekly Availability CSV, generation) ----------
 
@@ -1630,7 +1688,7 @@ document.getElementById("roster-load-btn").addEventListener("click", () => {
       });
       LIVE_ROSTER_TEAMS = Object.values(teamsById);
       LIVE_ROSTER_PLAYERS = players;
-      if (APP_MODE === "live") switchAppMode("live");
+      if (APP_MODE === "live") switchAppMode("live", { navigate: false });
       statusEl.textContent = `Loaded ${LIVE_ROSTER_TEAMS.length} teams, ${LIVE_ROSTER_PLAYERS.length} players. Now load this week's Availability CSV, or switch to Live Pilot Mode.`;
     } catch (e) {
       statusEl.textContent = "Could not parse this file: " + e.message;
@@ -1723,7 +1781,8 @@ document.getElementById("weekly-load-btn").addEventListener("click", () => {
 
       LIVE_BORROW_REQUESTS = borrowRequests;
       LIVE_LOAN_REQUESTS = loanRequests;
-      if (APP_MODE === "live") switchAppMode("live");
+      if (APP_MODE === "live") switchAppMode("live", { navigate: false });
+      updateMainStageButtonState();
 
       statusEl.textContent = `Generated ${borrowRequests.length} Borrow request(s) and ${loanRequests.length} Loan request(s) from ${rows.length} player rows.`;
       const teamSummaries = LIVE_ROSTER_TEAMS.map(t => {
@@ -1767,31 +1826,36 @@ fetch("./current-requests.json").then(r => r.ok ? r.json() : null).then(data => 
 // ---------- MAIN STAGE (battle cards, experimental) ----------
 
 let MAINSTAGE_CASE_ID = null;
-let MAINSTAGE_MOCK = null; // { fields: {...}, gateAction: null } - local-only, never touches AGENT_RESULTS/RUN_LOG
 
 function showOnMainStage(borrowRequestId) {
   MAINSTAGE_CASE_ID = borrowRequestId;
-  MAINSTAGE_MOCK = null;
   switchView("mainstage");
   renderMainStage();
 }
 
-// Cycle order matches the demo chips left-to-right: E-01, E-27, E-08, E-28 (wins, B601), E-21, E-28 (defers, B602)
-const MAINSTAGE_CHIP_ORDER = ["B-E01", "B-E27", "B-E08", "B601", "B-E21", "B602"];
+function mainStageCycleOrder() {
+  return BORROW_REQUESTS.filter(b => b.RequestStatus === "Open").map(b => b.RequestID);
+}
 
 function nextMainStageCase() {
-  const currentIndex = MAINSTAGE_CHIP_ORDER.indexOf(MAINSTAGE_CASE_ID);
-  const nextIndex = (currentIndex + 1) % MAINSTAGE_CHIP_ORDER.length;
-  showOnMainStage(MAINSTAGE_CHIP_ORDER[nextIndex]);
+  const order = mainStageCycleOrder();
+  if (!order.length) return;
+  const currentIndex = order.indexOf(MAINSTAGE_CASE_ID);
+  const nextIndex = (currentIndex + 1) % order.length;
+  showOnMainStage(order[nextIndex]);
 }
+
+document.getElementById("intro-mainstage-btn").addEventListener("click", () => {
+  const order = mainStageCycleOrder();
+  if (order.length) {
+    showOnMainStage(order[0]);
+  } else {
+    switchView("mainstage");
+  }
+});
 
 document.getElementById("mainstage-next-btn").addEventListener("click", nextMainStageCase);
-
-function dismissMainStage() {
-  MAINSTAGE_CASE_ID = null;
-  MAINSTAGE_MOCK = null;
-  renderMainStage();
-}
+document.getElementById("mainstage-backstage-btn").addEventListener("click", () => switchView("cases"));
 
 function urgencyBadgeClass(urgency) {
   if (urgency === "High") return "danger";
@@ -1846,9 +1910,8 @@ function renderMainStage() {
   const game = findGame(b.GameID);
 
   const realResult = AGENT_RESULTS[MAINSTAGE_CASE_ID];
-  const isSimulated = !realResult && !!MAINSTAGE_MOCK;
-  const fields = realResult ? realResult.fields : (MAINSTAGE_MOCK ? MAINSTAGE_MOCK.fields : null);
-  const gateAction = realResult ? GATE_ACTIONS[MAINSTAGE_CASE_ID] : (MAINSTAGE_MOCK ? MAINSTAGE_MOCK.gateAction : null);
+  const fields = realResult ? realResult.fields : null;
+  const gateAction = realResult ? GATE_ACTIONS[MAINSTAGE_CASE_ID] : null;
   const isOk = !!fields && fields.STATUS === "OK";
 
   // ---- Combined MATCH card: once a real match has been Approved ----
@@ -1876,7 +1939,6 @@ function renderMainStage() {
           <div class="card-line">from ${c.sourceTeam || ""} ${c.sourceType ? "(" + c.sourceType + ")" : ""}</div>
         </div>
       </div>
-      ${isSimulated ? `<div class="sim-note">Simulated &middot; not sent to the agent</div>` : ""}
       <div class="flip-hint"><svg class="flip-icon" viewBox="0 0 16 16" width="13" height="13" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 8a6 6 0 0 1 10.5-4M14 8a6 6 0 0 1-10.5 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M11 2.5v3h-3M5 13.5v-3h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>See back of card</div>
     `;
 
@@ -1899,15 +1961,6 @@ function renderMainStage() {
     matchFlipWrap.appendChild(matchFlipInner);
     matchFlipWrap.addEventListener("click", () => matchFlipWrap.classList.toggle("flipped"));
     arena.appendChild(matchFlipWrap);
-
-    const controls = document.createElement("div");
-    controls.className = "stage-controls";
-    const dismissBtn = document.createElement("button");
-    dismissBtn.className = "btn";
-    dismissBtn.textContent = "Close";
-    dismissBtn.addEventListener("click", dismissMainStage);
-    controls.appendChild(dismissBtn);
-    arena.appendChild(controls);
     return;
   }
 
@@ -1946,28 +1999,6 @@ function renderMainStage() {
     const controls = document.createElement("div");
     controls.className = "stage-controls";
 
-    const simMatchBtn = document.createElement("button");
-    simMatchBtn.className = "btn";
-    simMatchBtn.textContent = "Simulate Match";
-    simMatchBtn.addEventListener("click", () => {
-      MAINSTAGE_MOCK = {
-        fields: { STATUS: "OK", CANDIDATE: "Sample Player, 9, Female, U9, Division 1, Sample Team, Mixed" },
-        gateAction: null
-      };
-      renderMainStage();
-    });
-
-    const simRefuseBtn = document.createElement("button");
-    simRefuseBtn.className = "btn";
-    simRefuseBtn.textContent = "Simulate Refuse";
-    simRefuseBtn.addEventListener("click", () => {
-      MAINSTAGE_MOCK = {
-        fields: { STATUS: "REFUSED-ESCALATE", REASON: "Simulated refusal - sample reason, no eligible candidate." },
-        gateAction: null
-      };
-      renderMainStage();
-    });
-
     const revealBtn = document.createElement("button");
     revealBtn.className = "btn primary";
     revealBtn.textContent = "Reveal Match";
@@ -1978,17 +2009,7 @@ function renderMainStage() {
       renderMainStage();
     });
 
-    if (APP_MODE === "test") {
-      controls.appendChild(simMatchBtn);
-      controls.appendChild(simRefuseBtn);
-    }
     controls.appendChild(revealBtn);
-
-    const dismissBtn = document.createElement("button");
-    dismissBtn.className = "btn";
-    dismissBtn.textContent = "Close";
-    dismissBtn.addEventListener("click", dismissMainStage);
-    controls.appendChild(dismissBtn);
 
     arena.appendChild(controls);
     return;
@@ -2019,9 +2040,7 @@ function renderMainStage() {
     const backCard = document.createElement("div");
     backCard.className = "battle-card loan flip-face back";
     const bullets = toBullets(fields.ELIGIBILITY_CONFIRMATION).map(b => `<li>${b}</li>`).join("");
-    const rejectReasonText = isSimulated
-      ? (MAINSTAGE_MOCK.rejectReason || "")
-      : (realResult && realResult.logEntry ? realResult.logEntry.humanAction.replace(/^Rejected:\s*/, "") : "");
+    const rejectReasonText = realResult && realResult.logEntry ? realResult.logEntry.humanAction.replace(/^Rejected:\s*/, "") : "";
     const rejectLi = gateAction === "rejected"
       ? `<li class="reject-reason">Rejected: ${rejectReasonText}</li>`
       : "";
@@ -2051,13 +2070,6 @@ function renderMainStage() {
     arena.appendChild(loanCard);
   }
 
-  if (isSimulated) {
-    const simNote = document.createElement("div");
-    simNote.className = "sim-note";
-    simNote.textContent = "Simulated · not sent to the agent";
-    arena.appendChild(simNote);
-  }
-
   const controls = document.createElement("div");
   controls.className = "stage-controls";
 
@@ -2067,8 +2079,7 @@ function renderMainStage() {
     approveBtn.textContent = "Approve";
     approveBtn.addEventListener("click", () => {
       const finish = () => {
-        if (isSimulated) { MAINSTAGE_MOCK.gateAction = "approved"; }
-        else { setGateAction(MAINSTAGE_CASE_ID, "Approved", "approved"); }
+        setGateAction(MAINSTAGE_CASE_ID, "Approved", "approved");
         renderMainStage();
       };
       approveBtn.disabled = true;
@@ -2084,15 +2095,14 @@ function renderMainStage() {
     rejectBtn.addEventListener("click", () => {
       const reason = window.prompt("One-line reason for rejecting this candidate:");
       if (reason === null || reason.trim() === "") return;
-      if (isSimulated) { MAINSTAGE_MOCK.gateAction = "rejected"; MAINSTAGE_MOCK.rejectReason = reason.trim(); }
-      else { setGateAction(MAINSTAGE_CASE_ID, `Rejected: ${reason.trim()}`, "rejected"); }
+      setGateAction(MAINSTAGE_CASE_ID, `Rejected: ${reason.trim()}`, "rejected");
       renderMainStage();
     });
 
     const overrideBtn = document.createElement("button");
     overrideBtn.className = "btn";
     overrideBtn.textContent = "Override";
-    overrideBtn.addEventListener("click", () => startMainStageOverride(isSimulated));
+    overrideBtn.addEventListener("click", () => startMainStageOverride());
 
     controls.appendChild(approveBtn);
     controls.appendChild(rejectBtn);
@@ -2100,26 +2110,20 @@ function renderMainStage() {
   } else if (gateAction) {
     const p = document.createElement("p");
     p.className = "card-line";
-    p.textContent = isSimulated ? "(simulated) " + gateAction : (realResult.logEntry ? realResult.logEntry.humanAction : "");
+    p.textContent = realResult.logEntry ? realResult.logEntry.humanAction : "";
     controls.appendChild(p);
   }
-  // !isOk && !gateAction: no candidate to act on - only Close applies (added below)
-
-  const dismissBtn = document.createElement("button");
-  dismissBtn.className = "btn";
-  dismissBtn.textContent = "Close";
-  dismissBtn.addEventListener("click", dismissMainStage);
-  controls.appendChild(dismissBtn);
+  // !isOk && !gateAction: no candidate to act on - nothing to show here
 
   arena.appendChild(controls);
 }
 
-function startMainStageOverride(isSimulated) {
+function startMainStageOverride() {
   const arena = document.getElementById("mainstage-arena");
   const controls = arena.querySelector(".stage-controls");
   controls.innerHTML = "";
 
-  const fields = isSimulated ? MAINSTAGE_MOCK.fields : AGENT_RESULTS[MAINSTAGE_CASE_ID].fields;
+  const fields = AGENT_RESULTS[MAINSTAGE_CASE_ID].fields;
   const textarea = document.createElement("textarea");
   textarea.rows = 2;
   textarea.style.width = "100%";
@@ -2131,11 +2135,7 @@ function startMainStageOverride(isSimulated) {
   saveBtn.addEventListener("click", () => {
     const edited = textarea.value;
     fields.CANDIDATE = edited;
-    if (isSimulated) {
-      MAINSTAGE_MOCK.gateAction = "overridden";
-    } else {
-      setGateAction(MAINSTAGE_CASE_ID, `Overridden candidate to: "${edited}"`, "overridden");
-    }
+    setGateAction(MAINSTAGE_CASE_ID, `Overridden candidate to: "${edited}"`, "overridden");
     renderMainStage();
   });
 
