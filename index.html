@@ -762,8 +762,8 @@ Use only the embedded data and policy constants below. Never invent facts.
 - PLAYERS: player roster (PlayerID, Name, Age, Gender, AgeGroup, Division, TeamID, JerseyNumber)
 - GAMES: game schedule (GameID, GameAt, LocationName)
 - BORROW_REQUESTS: open/awaiting Borrow requests (the cases)
-- LOAN_REQUESTS: the candidate pool. Includes both Open and Awaiting Approval requests - an Awaiting Approval Loan means that player is already tentatively committed to a DIFFERENT Borrow request (check otherBorrowRequests for which one). Do not treat an Awaiting Approval candidate as free; apply the double-booking / already-committed reasoning to exclude them unless you are re-evaluating that exact same request. Each candidate in the pool includes SourceTeamGame (that candidate's own team's game - GameAt, LocationName) - this is the data you check against the destination's Game.GameAt to evaluate the own-game-conflict rule. This data is always provided; never claim it is missing. This is a date/time-only check - LocationName never resolves it. If the candidate's own team's SourceTeamGame.GameAt exactly matches the destination's Game.GameAt (same date and time), that is always a conflict, whether the two games share a location or not. Do not treat a different LocationName as evidence against a conflict - a player cannot be in two places when the games are simultaneous.
-- Each candidate also includes ClaimedByBorrowRequestID (eligibility_rules.md section 8, Selection Order). If non-null, that Borrow request is this candidate's actual, fully-resolved owner right now - this value already accounts for every competing request's Urgency tier and RequestedAt, it is not one competitor's opinion, it is the final answer. A candidate with a non-null ClaimedByBorrowRequestID must never be recommended for a different request. If null, no other request currently owns this candidate. This value is authoritative: do not re-derive it, do not compute what any other Borrow request's own top candidate would be, and do not reason about tier or RequestedAt to reach your own conclusion about who owns a candidate - that reasoning has already been done for you and re-deriving it is how mistakes happen.
+- LOAN_REQUESTS: the candidate pool. Includes both Open and Awaiting Approval requests. Each candidate in the pool includes SourceTeamGame (that candidate's own team's game - GameAt, LocationName) - this is the data you check against the destination's Game.GameAt to evaluate the own-game-conflict rule. This data is always provided; never claim it is missing. This is a date/time-only check - LocationName never resolves it. If the candidate's own team's SourceTeamGame.GameAt exactly matches the destination's Game.GameAt (same date and time), that is always a conflict, whether the two games share a location or not. Do not treat a different LocationName as evidence against a conflict - a player cannot be in two places when the games are simultaneous.
+- Each candidate also includes ClaimedByBorrowRequestID - the single, authoritative field for "is this candidate already unavailable to me, and because of what." It covers BOTH reasons a candidate can be unavailable, already resolved for you: (1) an Awaiting Approval loan is already tentatively committed to the Borrow request named there (a double-booking risk - eligibility_rules.md §4), or (2) an Open loan is already the resolved winner of a different, higher-or-equal-priority Open request (Selection Order - eligibility_rules.md §8, already accounting for every competing request's Urgency tier and RequestedAt). Non-null, for either reason, means this candidate must never be recommended for a different request - you do not need to know or care which of the two reasons applies, and you never need to separately inspect RequestStatus or RelatedRequestIDs to decide availability; this field already did that. If null, this candidate is fully available to you. This value is authoritative: do not re-derive it, do not compute what any other Borrow request's own top candidate would be, and do not reason about tier, RequestedAt, or RequestStatus to reach your own conclusion about availability - that reasoning has already been done for you and re-deriving it is how mistakes happen.
 - AgeCoordinator and TeamManager (on TEAMS) are contact/display information only. They are NEVER an eligibility factor. Two teams sharing the same AgeCoordinator or TeamManager has no effect on eligibility and must never be cited as a reason to reject a candidate.
 - POLICIES["eligibility_rules.md"]: the eligibility rules to apply
 - POLICIES["escalation_rules.md"]: the escalation rules to apply
@@ -943,13 +943,25 @@ function buildCaseContext(borrowRequestId) {
     .map(l => {
       const sourceTeam = findTeam(l.SourceTeamID);
       const { IsAvailable, ...playerForAgent } = findPlayer(l.PlayerID);
-      const winningBorrowId = loanIdToWinningBorrowId[l.RequestID];
+      // ClaimedByBorrowRequestID covers BOTH reasons a candidate can already be unavailable:
+      // an Awaiting Approval loan is already tentatively committed to whatever RelatedRequestIDs
+      // names (a double-booking risk, not a Selection Order question), and an Open loan may already
+      // be the resolved winner of a different Open request. Unifying both into one field means the
+      // agent never has to separately remember to check RequestStatus/RelatedRequestIDs on top of
+      // trusting this field - non-null always means "not available to you," for either reason.
+      let claimedBy = null;
+      if (l.RequestStatus === "Awaiting Approval") {
+        claimedBy = (l.RelatedRequestIDs && l.RelatedRequestIDs !== borrowRequestId) ? l.RelatedRequestIDs : null;
+      } else {
+        const winningBorrowId = loanIdToWinningBorrowId[l.RequestID];
+        claimedBy = (winningBorrowId && winningBorrowId !== borrowRequestId) ? winningBorrowId : null;
+      }
       return {
         ...l,
         Player: playerForAgent,
         SourceTeam: sourceTeam,
         SourceTeamGame: findGame(sourceTeam.GameID),
-        ClaimedByBorrowRequestID: (winningBorrowId && winningBorrowId !== borrowRequestId) ? winningBorrowId : null
+        ClaimedByBorrowRequestID: claimedBy
       };
     });
 
