@@ -763,6 +763,7 @@ Use only the embedded data and policy constants below. Never invent facts.
 - GAMES: game schedule (GameID, GameAt, LocationName)
 - BORROW_REQUESTS: open/awaiting Borrow requests (the cases)
 - LOAN_REQUESTS: the candidate pool. Includes both Open and Awaiting Approval requests - an Awaiting Approval Loan means that player is already tentatively committed to a DIFFERENT Borrow request (check otherBorrowRequests for which one). Do not treat an Awaiting Approval candidate as free; apply the double-booking / already-committed reasoning to exclude them unless you are re-evaluating that exact same request. Each candidate in the pool includes SourceTeamGame (that candidate's own team's game - GameAt, LocationName) - this is the data you check against the destination's Game.GameAt to evaluate the own-game-conflict rule. This data is always provided; never claim it is missing. This is a date/time-only check - LocationName never resolves it. If the candidate's own team's SourceTeamGame.GameAt exactly matches the destination's Game.GameAt (same date and time), that is always a conflict, whether the two games share a location or not. Do not treat a different LocationName as evidence against a conflict - a player cannot be in two places when the games are simultaneous.
+- Each candidate also includes ClaimedByBorrowRequestID (eligibility_rules.md section 8, Selection Order). If non-null, that Borrow request is this candidate's actual, fully-resolved owner right now - this value already accounts for every competing request's Urgency tier and RequestedAt, it is not one competitor's opinion, it is the final answer. A candidate with a non-null ClaimedByBorrowRequestID must never be recommended for a different request. If null, no other request currently owns this candidate. This value is authoritative: do not re-derive it, do not compute what any other Borrow request's own top candidate would be, and do not reason about tier or RequestedAt to reach your own conclusion about who owns a candidate - that reasoning has already been done for you and re-deriving it is how mistakes happen.
 - AgeCoordinator and TeamManager (on TEAMS) are contact/display information only. They are NEVER an eligibility factor. Two teams sharing the same AgeCoordinator or TeamManager has no effect on eligibility and must never be cited as a reason to reject a candidate.
 - POLICIES["eligibility_rules.md"]: the eligibility rules to apply
 - POLICIES["escalation_rules.md"]: the escalation rules to apply
@@ -781,7 +782,7 @@ Do your analysis BEFORE writing your conclusion - write the WHY field first, wor
 
 Reply using exactly this format: one field per line, each line starting with the exact label followed by a colon and a single-line value. Print the fields in exactly this order: WHY, STATUS, REASON, REQUEST, DESTINATION, CANDIDATE, ELIGIBILITY_CONFIRMATION, CITATIONS, CROSS_CATEGORY_NOTE, JERSEY_NOTE. Do not add any text before the first label or after the last line. Omit CROSS_CATEGORY_NOTE and JERSEY_NOTE entirely when they don't apply. Omit REASON only when STATUS is OK.
 
-WHY: Work out the real answer here first. Before settling on a candidate, check otherBorrowRequests for any other Open Borrow request that could also claim the same candidate (see Selection Order note below) - this is eligibility_rules.md section 8. Each entry in otherBorrowRequests includes CurrentTopEligibleCandidateID - the RequestID of the candidate that request would actually select under section 8's FIFO rule, already computed for you. This value is authoritative: do not re-derive it, do not re-screen that other request's own candidate pool yourself, and do not reason about whether some other candidate "would also pass" that request's rules - only CurrentTopEligibleCandidateID decides who that request would take. A candidate is claimed by another request ONLY when that request outranks yours in priority (see Selection Order note) AND its CurrentTopEligibleCandidateID exactly equals this candidate's own RequestID. If CurrentTopEligibleCandidateID is null, or is a different RequestID than this candidate's, this candidate is NOT claimed by that request, no matter how much earlier that request was made or whether this candidate could individually pass its rules. One to three sentences: the winning (or closest) candidate's decisive data points, written as actual numbers you compared (e.g. "actual age 6 vs destination nominal age 10, difference 4"), and the eligibility_rules.md section/subsection applied. Do not walk through every candidate in the pool one by one - that is internal work, not output.
+WHY: Work out the real answer here first. Screen candidates in RequestedAt order. For each candidate that otherwise clears every hard rule, check its ClaimedByBorrowRequestID (see Selection Order note below) - this is eligibility_rules.md section 8. A non-null value means this candidate already belongs to that other request; skip to your next-earliest remaining candidate without re-deriving why. One to three sentences: the winning (or closest) candidate's decisive data points, written as actual numbers you compared (e.g. "actual age 6 vs destination nominal age 10, difference 4"), and the eligibility_rules.md section/subsection applied. Do not walk through every candidate in the pool one by one - that is internal work, not output.
 STATUS: OK, or REFUSED-ESCALATE if every available candidate fails a hard eligibility rule, a rule cannot be evaluated because required data is missing, or your best candidate is already claimed by an earlier-requested competing Borrow request under Selection Order. Must match what you just concluded in WHY - never contradict your own numbers.
 REASON: required whenever STATUS is REFUSED-ESCALATE - one or two sentences stating the winning constraint only, consistent with WHY. Cite the eligibility_rules.md section number.
 REQUEST: BorrowRequestID, Urgency
@@ -792,7 +793,7 @@ CITATIONS: always required, but SHORT - a maximum of 6 items, comma-separated. T
 CROSS_CATEGORY_NOTE: only if the Mixed-to-Girls-only allowance was the reason this candidate qualifies
 JERSEY_NOTE: only if the candidate's JerseyNumber clashes with the destination roster
 
-Selection Order note (eligibility_rules.md section 8): a candidate who otherwise passes every rule for THIS request may still not be yours - but a request is never at risk from a competitor at a LOWER Urgency tier than itself. If THIS request is High, no Medium or Low request can ever claim your candidate - skip them entirely, do not check them further. Otherwise, check every other Open Borrow request whose Urgency is High, or that shares this request's own tier: read its CurrentTopEligibleCandidateID (already computed for you - do not re-derive it, and do not screen that other request's candidate pool yourself) and compare it directly to your candidate's own RequestID. Only an exact ID match means your candidate is that request's pick - the fact that your candidate would individually pass that other request's rules is not enough on its own and must never be used to conclude a claim. Among any other request whose CurrentTopEligibleCandidateID matches your candidate, decide priority in this order, not RequestedAt alone: (1) a High-tier request always outranks a Medium- or Low-tier request, no matter how much earlier the Medium/Low request was made - Minimum not being met always matters more than who asked first; (2) between two requests in the SAME tier, the one with the earlier RequestedAt wins. If a higher-priority request's CurrentTopEligibleCandidateID matches, the candidate belongs to that request - but that request only needs and will only take ONE candidate total. Once a specific competing request claims one of your candidates, that competitor is satisfied - it cannot also claim a second, different candidate of yours. Do not reuse one competitor's claim to disqualify multiple candidates. Move to your next-earliest eligible candidate for THIS request (checked against remaining, not-yet-satisfied competitors only), or REFUSED-ESCALATE if none remain. State in WHY which other request(s) you checked, including their Urgency tier and CurrentTopEligibleCandidateID, even briefly (e.g. "checked against B601 (High), CurrentTopEligibleCandidateID L802 matches this candidate - High outranks this Medium request - candidate belongs to B601").
+Selection Order note (eligibility_rules.md section 8): a candidate who otherwise passes every rule for THIS request may still not be yours. Each candidate's own ClaimedByBorrowRequestID field is the complete, final answer to that question - it was computed by resolving every open Borrow request against every candidate together, in true priority order (Urgency tier first, then RequestedAt within the same tier), so it already reflects who genuinely owns this candidate right now. You do not need to, and must not, work this out yourself: do not compute what another Borrow request's own top candidate would be, do not compare Urgency tiers or RequestedAt values between requests to decide ownership, and do not re-screen any other request's candidate pool. Just read the field on each candidate: null means no one else owns it, take it; a RequestID means it already belongs to that request - cite which one in WHY, and move to your next-earliest remaining candidate. If every candidate in RequestedAt order is either claimed or fails a hard rule, REFUSED-ESCALATE.
 
 Passing the AgeGroup-category check (1a) is never enough on its own to set STATUS to OK - independently verify the actual-age play-up cap (1b, only when playing up), and every other hard rule in eligibility_rules.md, before recommending a candidate. When in doubt, REFUSED-ESCALATE is the safe choice, not a guess. Keep the whole response terse: a human reviewer must be able to judge it in under a minute. Do your elimination work silently; report only the conclusion and its decisive reason.
 
@@ -876,21 +877,43 @@ function candidateClearsHardRules(candidate, destinationTeam, destinationGame) {
   return true;
 }
 
-function topEligibleCandidateFor(destinationTeamId, gameId) {
-  const destinationTeam = findTeam(destinationTeamId);
-  const game = findGame(gameId);
-  if (!destinationTeam) return null;
+const BORROW_TIER_RANK = { High: 0, Medium: 1, Low: 2 };
 
-  const eligible = LOAN_REQUESTS
-    .filter(l => l.RequestStatus === "Open")
-    .map(l => {
-      const sourceTeam = findTeam(l.SourceTeamID);
-      return { ...l, Player: findPlayer(l.PlayerID), SourceTeam: sourceTeam, SourceTeamGame: sourceTeam ? findGame(sourceTeam.GameID) : null };
-    })
-    .filter(c => candidateClearsHardRules(c, destinationTeam, game))
-    .sort((a, b) => a.RequestedAt.localeCompare(b.RequestedAt));
+// Resolves every open Borrow request's actual winning candidate in one pass, processing
+// requests in true priority order (tier, then RequestedAt) and removing each candidate from
+// the pool once assigned. This is deliberately NOT "each request's independent top pick" -
+// a request whose naive first choice gets taken by an even-higher-priority request must fall
+// back to its next-best candidate, and every request checking claims against it needs to see
+// that real, resolved answer - not the first choice it never actually got.
+function resolveAllBorrowMatches() {
+  const openBorrows = BORROW_REQUESTS
+    .filter(b => b.RequestStatus === "Open")
+    .slice()
+    .sort((a, b) => {
+      const tierDiff = BORROW_TIER_RANK[a.Urgency] - BORROW_TIER_RANK[b.Urgency];
+      return tierDiff !== 0 ? tierDiff : a.RequestedAt.localeCompare(b.RequestedAt);
+    });
 
-  return eligible.length ? eligible[0].RequestID : null;
+  const claimedLoanIds = new Set();
+  const resolution = {};
+
+  openBorrows.forEach(b => {
+    const destinationTeam = findTeam(b.DestinationTeamID);
+    const game = findGame(b.GameID);
+    const winner = LOAN_REQUESTS
+      .filter(l => l.RequestStatus === "Open" && !claimedLoanIds.has(l.RequestID))
+      .map(l => {
+        const sourceTeam = findTeam(l.SourceTeamID);
+        return { ...l, Player: findPlayer(l.PlayerID), SourceTeam: sourceTeam, SourceTeamGame: sourceTeam ? findGame(sourceTeam.GameID) : null };
+      })
+      .filter(c => candidateClearsHardRules(c, destinationTeam, game))
+      .sort((a, c) => a.RequestedAt.localeCompare(c.RequestedAt))[0];
+
+    resolution[b.RequestID] = winner ? winner.RequestID : null;
+    if (winner) claimedLoanIds.add(winner.RequestID);
+  });
+
+  return resolution;
 }
 
 function updateModeCountStatus() {
@@ -905,16 +928,28 @@ function buildCaseContext(borrowRequestId) {
   const destinationTeam = findTeam(request.DestinationTeamID);
   const game = findGame(request.GameID);
 
+  // Resolve every open request's real winner ONCE, then invert it to a LoanRequestID -> BorrowRequestID
+  // map so each candidate can be told directly "you already belong to request X" - no ID comparison,
+  // no re-deriving another request's own pick, nothing left for the agent to compute here at all.
+  const resolution = resolveAllBorrowMatches();
+  const loanIdToWinningBorrowId = {};
+  Object.keys(resolution).forEach(bId => {
+    const loanId = resolution[bId];
+    if (loanId) loanIdToWinningBorrowId[loanId] = bId;
+  });
+
   const candidatePool = LOAN_REQUESTS
     .filter(l => l.RequestStatus === "Open" || l.RequestStatus === "Awaiting Approval")
     .map(l => {
       const sourceTeam = findTeam(l.SourceTeamID);
       const { IsAvailable, ...playerForAgent } = findPlayer(l.PlayerID);
+      const winningBorrowId = loanIdToWinningBorrowId[l.RequestID];
       return {
         ...l,
         Player: playerForAgent,
         SourceTeam: sourceTeam,
-        SourceTeamGame: findGame(sourceTeam.GameID)
+        SourceTeamGame: findGame(sourceTeam.GameID),
+        ClaimedByBorrowRequestID: (winningBorrowId && winningBorrowId !== borrowRequestId) ? winningBorrowId : null
       };
     });
 
@@ -923,8 +958,7 @@ function buildCaseContext(borrowRequestId) {
     .map(b => ({
       ...b,
       DestinationTeam: findTeam(b.DestinationTeamID),
-      Game: findGame(b.GameID),
-      CurrentTopEligibleCandidateID: topEligibleCandidateFor(b.DestinationTeamID, b.GameID)
+      Game: findGame(b.GameID)
     }));
 
   return {
