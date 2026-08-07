@@ -2235,6 +2235,25 @@ async function runEvalCase(caseId) {
   saveEvalResult(caseId, { actual: actualText, lastRun: new Date().toLocaleString() });
 }
 
+function buildEvalCopyText(caseId) {
+  const ec = EVAL_CASES.find(e => e.case_id === caseId);
+  const parts = [ec.case_id];
+  ec.borrow_request_id.split(",").forEach(id => {
+    const result = AGENT_RESULTS[id];
+    if (!result) {
+      parts.push(`${id}: no result yet - run this case first`);
+      return;
+    }
+    const f = result.fields;
+    if (f.STATUS === "OK") {
+      parts.push(`${id}\nTL;DR: OK - ${f.CANDIDATE || ""}\nWhy: ${f.WHY || ""}\nCandidate: ${f.CANDIDATE || ""}`);
+    } else {
+      parts.push(`${id}\nTL;DR: REFUSED-ESCALATE - ${f.REASON || ""}\nWhy: ${f.WHY || ""}\nReason: ${f.REASON || ""}`);
+    }
+  });
+  return parts.join("\n\n");
+}
+
 function renderEvalsTable() {
   const tbody = document.getElementById("evals-table-body");
   tbody.innerHTML = "";
@@ -2255,6 +2274,7 @@ function renderEvalsTable() {
     actualSpan.id = `eval-actual-${ec.case_id}`;
     actualSpan.textContent = savedRow.actual || "";
     actualTd.appendChild(actualSpan);
+    actualTd.appendChild(makeCopyButton(() => buildEvalCopyText(ec.case_id)));
 
     const verdictTd = document.createElement("td");
     const verdictSelect = document.createElement("select");
