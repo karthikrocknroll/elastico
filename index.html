@@ -328,6 +328,8 @@ body {
 .report-wrap { max-width: 900px; margin: 0 auto; }
 .report-wrap h3 { font-size: var(--fs-3); color: var(--ink); margin-bottom: var(--sp-3); }
 .report-note { margin-top: var(--sp-3); font-size: var(--fs-0); color: var(--ink-3); }
+.report-row { cursor: pointer; }
+.report-row:hover td { background: color-mix(in srgb, var(--ink) 5%, transparent); }
 
 /* the loan-request deck (a stack of face-down cards, sliding out to the right, "?" on top) */
 .card-stack { position: relative; width: 360px; height: 340px; }
@@ -1893,10 +1895,12 @@ fetch("./current-requests.json").then(r => r.ok ? r.json() : null).then(data => 
 
 let MAINSTAGE_CASE_ID = null;
 let MAINSTAGE_REPORT_OPEN = false;
+let MAINSTAGE_REPORT_RETURN = false;
 
 function showOnMainStage(borrowRequestId) {
   MAINSTAGE_CASE_ID = borrowRequestId;
   MAINSTAGE_REPORT_OPEN = false;
+  MAINSTAGE_REPORT_RETURN = false;
   switchView("mainstage");
   renderMainStage();
 }
@@ -1935,6 +1939,7 @@ document.getElementById("mainstage-prev-btn").addEventListener("click", prevMain
 document.getElementById("mainstage-backstage-btn").addEventListener("click", () => switchView("cases"));
 document.getElementById("mainstage-report-btn").addEventListener("click", () => {
   MAINSTAGE_REPORT_OPEN = true;
+  MAINSTAGE_REPORT_RETURN = false;
   renderMainStage();
 });
 
@@ -2008,6 +2013,7 @@ function renderReport(arena) {
     const tbody = document.createElement("tbody");
     finalized.forEach(f => {
       const tr = document.createElement("tr");
+      tr.className = "report-row";
       const badgeClass = actionBadgeClass[f.action] || "neutral";
       tr.innerHTML = `
         <td>${f.id}</td>
@@ -2016,6 +2022,12 @@ function renderReport(arena) {
         <td><span class="badge ${badgeClass}">${f.action}</span></td>
         <td>${f.humanAction}</td>
       `;
+      tr.addEventListener("click", () => {
+        MAINSTAGE_CASE_ID = f.id;
+        MAINSTAGE_REPORT_OPEN = false;
+        MAINSTAGE_REPORT_RETURN = true;
+        renderMainStage();
+      });
       tbody.appendChild(tr);
     });
     table.appendChild(tbody);
@@ -2108,6 +2120,21 @@ function renderMainStage() {
     matchFlipWrap.appendChild(matchFlipInner);
     matchFlipWrap.addEventListener("click", () => matchFlipWrap.classList.toggle("flipped"));
     arena.appendChild(matchFlipWrap);
+
+    if (MAINSTAGE_REPORT_RETURN) {
+      const matchControls = document.createElement("div");
+      matchControls.className = "stage-controls";
+      const closeBtn = document.createElement("button");
+      closeBtn.className = "btn";
+      closeBtn.textContent = "Close";
+      closeBtn.addEventListener("click", () => {
+        MAINSTAGE_REPORT_RETURN = false;
+        MAINSTAGE_REPORT_OPEN = true;
+        renderMainStage();
+      });
+      matchControls.appendChild(closeBtn);
+      arena.appendChild(matchControls);
+    }
     return;
   }
 
@@ -2261,6 +2288,18 @@ function renderMainStage() {
     controls.appendChild(p);
   }
   // !isOk && !gateAction: no candidate to act on - nothing to show here
+
+  if (MAINSTAGE_REPORT_RETURN) {
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "btn";
+    closeBtn.textContent = "Close";
+    closeBtn.addEventListener("click", () => {
+      MAINSTAGE_REPORT_RETURN = false;
+      MAINSTAGE_REPORT_OPEN = true;
+      renderMainStage();
+    });
+    controls.appendChild(closeBtn);
+  }
 
   arena.appendChild(controls);
 }
