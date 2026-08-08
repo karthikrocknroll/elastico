@@ -290,7 +290,7 @@ body {
   padding: var(--sp-6) var(--sp-4); flex-wrap: wrap; perspective: 1200px;
 }
 .battle-card {
-  width: 320px; height: 340px; border-radius: var(--radius);
+  width: 360px; height: auto; min-height: 340px; border-radius: var(--radius);
   border: 2px solid var(--line); background: var(--bg-raise); box-shadow: var(--shadow);
   padding: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-2);
   position: relative;
@@ -325,10 +325,14 @@ body {
 .stage-controls { width: 100%; text-align: center; margin-top: var(--sp-4); display: flex; align-items: center; justify-content: center; gap: var(--sp-3); flex-wrap: wrap; }
 .stage-controls p { width: 100%; }
 
+.report-wrap { max-width: 900px; margin: 0 auto; }
+.report-wrap h3 { font-size: var(--fs-3); color: var(--ink); margin-bottom: var(--sp-3); }
+.report-note { margin-top: var(--sp-3); font-size: var(--fs-0); color: var(--ink-3); }
+
 /* the loan-request deck (a stack of face-down cards, sliding out to the right, "?" on top) */
-.card-stack { position: relative; width: 320px; height: 340px; }
+.card-stack { position: relative; width: 360px; height: 340px; }
 .card-stack .deck-back {
-  position: absolute; top: 0; left: 0; width: 320px; height: 340px; border-radius: var(--radius);
+  position: absolute; top: 0; left: 0; width: 360px; height: 340px; border-radius: var(--radius);
   border: 2px solid var(--ink); background: var(--bg-raise); box-shadow: var(--shadow);
 }
 .card-stack .deck-back.deck-a { transform: translateX(28px); opacity: .4; z-index: 1; }
@@ -346,14 +350,14 @@ body {
   100% { transform: scale(1) rotateY(0deg); opacity: 1; }
 }
 .battle-card.match {
-  border-color: var(--ok); width: 500px; animation: matchCardIn .5s ease-out;
+  border-color: var(--ok); width: 540px; animation: matchCardIn .5s ease-out;
 }
 .match-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4); margin-top: var(--sp-3); text-align: left; }
 .match-grid .card-label { margin-top: 0; }
 
 /* flip-to-back cards (eligibility confirmation) */
-.flip-card { position: relative; width: 320px; height: 340px; perspective: 1400px; }
-.flip-card.match-size { width: 500px; height: 420px; }
+.flip-card { position: relative; width: 360px; height: 380px; perspective: 1400px; }
+.flip-card.match-size { width: 540px; height: 460px; }
 .flip-inner {
   position: relative; width: 100%; height: 100%;
   transition: transform .6s ease; transform-style: preserve-3d; cursor: pointer;
@@ -475,7 +479,9 @@ body {
 
 <div id="mainstage-view" style="display:none; padding: var(--sp-4);">
   <div style="display:flex; justify-content:flex-end; gap: var(--sp-2); margin-bottom: var(--sp-3);">
+    <button class="btn" id="mainstage-report-btn">Report</button>
     <button class="btn" id="mainstage-backstage-btn">Backstage</button>
+    <button class="btn" id="mainstage-prev-btn">&larr; Prev</button>
     <button class="btn" id="mainstage-next-btn">Next &rarr;</button>
   </div>
   <div class="empty" id="mainstage-idle">
@@ -1886,9 +1892,11 @@ fetch("./current-requests.json").then(r => r.ok ? r.json() : null).then(data => 
 // ---------- MAIN STAGE (battle cards, experimental) ----------
 
 let MAINSTAGE_CASE_ID = null;
+let MAINSTAGE_REPORT_OPEN = false;
 
 function showOnMainStage(borrowRequestId) {
   MAINSTAGE_CASE_ID = borrowRequestId;
+  MAINSTAGE_REPORT_OPEN = false;
   switchView("mainstage");
   renderMainStage();
 }
@@ -1905,6 +1913,14 @@ function nextMainStageCase() {
   showOnMainStage(order[nextIndex]);
 }
 
+function prevMainStageCase() {
+  const order = mainStageCycleOrder();
+  if (!order.length) return;
+  const currentIndex = order.indexOf(MAINSTAGE_CASE_ID);
+  const prevIndex = (currentIndex - 1 + order.length) % order.length;
+  showOnMainStage(order[prevIndex]);
+}
+
 document.getElementById("intro-mainstage-btn").addEventListener("click", () => {
   const order = mainStageCycleOrder();
   if (order.length) {
@@ -1915,7 +1931,12 @@ document.getElementById("intro-mainstage-btn").addEventListener("click", () => {
 });
 
 document.getElementById("mainstage-next-btn").addEventListener("click", nextMainStageCase);
+document.getElementById("mainstage-prev-btn").addEventListener("click", prevMainStageCase);
 document.getElementById("mainstage-backstage-btn").addEventListener("click", () => switchView("cases"));
+document.getElementById("mainstage-report-btn").addEventListener("click", () => {
+  MAINSTAGE_REPORT_OPEN = true;
+  renderMainStage();
+});
 
 function urgencyBadgeClass(urgency) {
   if (urgency === "High") return "danger";
@@ -1951,10 +1972,76 @@ function findLoanRequestIdForPlayerName(name) {
   return loan ? loan.RequestID : "L-???";
 }
 
+function renderReport(arena) {
+  const finalized = BORROW_REQUESTS
+    .filter(b => GATE_ACTIONS[b.RequestID])
+    .map(b => {
+      const team = findTeam(b.DestinationTeamID);
+      const result = AGENT_RESULTS[b.RequestID];
+      const fields = result ? result.fields : null;
+      const action = GATE_ACTIONS[b.RequestID];
+      const humanAction = result && result.logEntry ? result.logEntry.humanAction : "";
+      const candidateName = fields ? (candidateParts(fields).name || fields.CANDIDATE || "") : "";
+      return { id: b.RequestID, team: team ? team.Name : "", candidateName, action, humanAction };
+    });
+
+  const actionBadgeClass = { approved: "ok", rejected: "danger", overridden: "warn" };
+
+  const wrap = document.createElement("div");
+  wrap.className = "report-wrap";
+
+  const title = document.createElement("h3");
+  title.textContent = `Report — ${finalized.length} finalized request${finalized.length === 1 ? "" : "s"}`;
+  wrap.appendChild(title);
+
+  if (!finalized.length) {
+    const empty = document.createElement("p");
+    empty.className = "card-line";
+    empty.textContent = "No requests have been Approved, Rejected, or Overridden yet.";
+    wrap.appendChild(empty);
+  } else {
+    const table = document.createElement("table");
+    table.className = "evals-table";
+    const thead = document.createElement("thead");
+    thead.innerHTML = "<tr><th>Case</th><th>Team</th><th>Candidate</th><th>Outcome</th><th>Detail</th></tr>";
+    table.appendChild(thead);
+    const tbody = document.createElement("tbody");
+    finalized.forEach(f => {
+      const tr = document.createElement("tr");
+      const badgeClass = actionBadgeClass[f.action] || "neutral";
+      tr.innerHTML = `
+        <td>${f.id}</td>
+        <td>${f.team}</td>
+        <td>${f.candidateName || "—"}</td>
+        <td><span class="badge ${badgeClass}">${f.action}</span></td>
+        <td>${f.humanAction}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+  }
+
+  const note = document.createElement("p");
+  note.className = "report-note";
+  note.textContent = "Missed isn't tracked in this prototype — no week-rollover timer is built.";
+  wrap.appendChild(note);
+
+  arena.appendChild(wrap);
+}
+
 function renderMainStage() {
   const idle = document.getElementById("mainstage-idle");
   const arena = document.getElementById("mainstage-arena");
   arena.innerHTML = "";
+
+  if (MAINSTAGE_REPORT_OPEN) {
+    idle.style.display = "none";
+    arena.style.display = "block";
+    arena.className = "";
+    renderReport(arena);
+    return;
+  }
 
   if (!MAINSTAGE_CASE_ID) {
     idle.style.display = "block";
